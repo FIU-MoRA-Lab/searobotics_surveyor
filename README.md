@@ -4,9 +4,12 @@ Particularly, it is a simplification of [this repo](https://github.com/FIU-MoRA-
 
 # Table of Contents
 - [Prerequisites](#Prerequisites)
+- [Package Contents](#Package_Contents)
 - [Installation and Set-up](#Installation-and-Set-up)
 - [Usage](#usage)
 - [Features](#features)
+- [Troubleshooting](#Troubleshooting)
+- [Related Links](#Related-Links)
 
 # Prerequisites
 
@@ -21,7 +24,10 @@ To run the code in this repository, you will need the following hardware compone
 - Sea Robotics network box.
 - Sea Robotics network antenna
 
-Python pip packages: Coming soon
+# Package Contents
+## `clients`
+## `debugging_files`
+##
 
 # Installation and Set-up
 
@@ -39,18 +45,20 @@ Python pip packages: Coming soon
 - Coming soon
 
 # Usage
-- For any application `main.py` you want to develop, the following structure is recommended
+- For any application `your_application.py` you want to develop, the following structure is recommended
 ```
-project/
-├── searobotics_surveyor/
-└── main.py
+your_project/
+├── surveyor_library/
+└── your_application.py
 ```
-Where this repo was cloned into the `searobotics_surveyor` folder.
+Where this repo was cloned into the `surveyor_library` folder.
 
 - Before running every application, make sure that `exo2_server.py` and either `picamera_server.py` or `picamera_server_flask.py` are running on their respective devices.
 
+# Troubleshooting
+Comming soon
 
-## Related Links
+# Related Links
 - EXO2 Multiparameter Sonde(https://www.ysi.com/exo2)
 - Sea Robotics Surveyor (https://www.searobotics.com/products/autonomous-surface-vehicles/sr-surveyor-class)
 
