@@ -1,5 +1,6 @@
-# Sea Robotics Surveyor Automation
-This repository contains the Arduino code and Raspberry Pi scripts used to control the low-cost airboats for collecting in-situ data. The airboats are equipped with various sensors to collect data along their trajectories. The collected data includes water depth measurements, GPS coordinates, and other environmental parameters. This code is part of the accompanying source code for the publication titled "Privacy-Preserving Multi-Agent Marine Data Collection via Differential Privacy" published to the Oceans 2023 Gulfcoast conference proceedings.
+# Sea Robotics Surveyor
+This repository contains the basic implementation to operate the sea robotics ASV by exposing basic commands and utilities.
+
 
 ## Prerequisites
 
