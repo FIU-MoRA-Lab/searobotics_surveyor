@@ -1,7 +1,6 @@
 # Sea Robotics Surveyor
 This repository contains the basic implementation to operate the sea robotics ASV by exposing basic commands and utilities.
 
-
 ## Prerequisites
 
 To run the code in this repository, you will need the following hardware components:
@@ -42,6 +41,3 @@ Python pip packages: Coming soon
 - EXO2 Multiparameter Sonde(https://www.ysi.com/exo2)
 - Sea Robotics Surveyor (https://www.searobotics.com/products/autonomous-surface-vehicles/sr-surveyor-class)
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
