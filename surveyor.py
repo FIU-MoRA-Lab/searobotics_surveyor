@@ -310,7 +310,7 @@ class Surveyor:
         """
         return self.exo2.get_exo2_data()
     
-    def get_data(self, keys=['coordinates', 'exo2_data']):
+    def get_data(self, keys=['coordinates', 'heading', 'exo2_data']):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
@@ -326,13 +326,15 @@ class Surveyor:
         getter_functions = {
             'exo2_data': self.get_exo2_data, # Dictionary with Exo2 sonde data
             'coordinates': self.get_gps_coordinates,# List with ["Latitude", "Longitude"]
-            'heading': self.get_attitude, # List with ["Heading"]
+            'heading': self.get_attitude, # List with ["Heading (degrees)"]
+            'pitch': self.get_pitch, # List with ["Pitch (degrees)"]
             'control_mode': self.get_control_mode # List with ["Control mode"]
         }
         data_labels = {
             'exo2_data' : ["date", "time", "odo (%sat)", "odo (mg/l)", "temp (c)", "cond (us/cm)", "salinity (ppt)", "pressure (psia)", "depth (m)"],
             'coordinates' : ["Latitude", "Longitude"],
-            'heading' : ["Heading"],
+            'heading' : ["Heading (degrees)"],
+            'pitch' : ["Pitch (degrees)"]
             'control_mode' : ["Control mode"]}
 
         # Initialize a list to store retrieved data
