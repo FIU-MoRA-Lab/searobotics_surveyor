@@ -199,6 +199,32 @@ def get_heading(attitude_message):
         # If any exception occurs or the message cannot be parsed, return None
         return None
 
+def get_pitch(attitude_message):
+    """
+    Extract the pitch value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The pitch value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+
+        # Check if the message has at least 2 parts (assuming the pitch is the second part)
+        if len(message_parts) >= 2:
+            # Convert the second part (pitch) to a float
+            pitch = float(message_parts[1])
+            return pitch
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
 def compute_nmea_checksum(message):
     """
     Compute the checksum for an NMEA message.
