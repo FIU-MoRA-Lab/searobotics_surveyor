@@ -225,6 +225,155 @@ def get_pitch(attitude_message):
         # If any exception occurs or the message cannot be parsed, return None
         return None
 
+def get_roll(attitude_message):
+    """
+    Extract the roll value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The roll value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+
+        # Check if the message has at least 3 parts (assuming the roll is the third part)
+        if len(message_parts) >= 3:
+            # Convert the third part (roll) to a float
+            roll = float(message_parts[2])
+            return roll
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+def get_heave(attitude_message):
+    """
+    Extract the heave value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The heave value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+        
+        if len(message_parts) >= 5:
+            heave = float(message_parts[4])
+            return heave
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+def get_accel_x(attitude_message):
+    """
+    Extract the accel_x value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The accel_x value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+        
+        if len(message_parts) >= 7:
+            accel_x = float(message_parts[6])
+            return accel_x
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+def get_accel_y(attitude_message):
+    """
+    Extract the accel_y value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The accel_y value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+        
+        if len(message_parts) >= 8:
+            accel_y = float(message_parts[7])
+            return accel_y
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+def get_accel_z(attitude_message):
+    """
+    Extract the accel_z value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The accel_z value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+        
+        if len(message_parts) >= 9:
+            accel_z = float(message_parts[8])
+            return accel_z
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+
+def get_yaw_rate(attitude_message):
+    """
+    Extract the yaw_rate value from an attitude message string.
+
+    Args:
+        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
+
+    Returns:
+        float: The yaw_rate value extracted from the message, or None if the message cannot be parsed.
+    """
+    try:
+        # Split the attitude message by commas
+        message_parts = attitude_message.split(',')
+        
+        if len(message_parts) >= 10:
+            yaw_rate = float(message_parts[9])
+            return yaw_rate
+        else:
+            print("Invalid message format")
+
+    except:
+        # If any exception occurs or the message cannot be parsed, return None
+        return None
+
+
+
 def compute_nmea_checksum(message):
     """
     Compute the checksum for an NMEA message.
