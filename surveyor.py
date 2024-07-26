@@ -285,6 +285,21 @@ class Surveyor:
             heading = hlp.get_heading(attitude_message)
 
         return heading
+
+    def get_pitch(self):
+        """
+        Get Pitch information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing pitch.
+        """
+        pitch = None
+        attitude_message = None
+        while (pitch == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            pitch = hlp.get_pitch(attitude_message)
+
+        return pitch
     
     def get_exo2_data(self):
         """
