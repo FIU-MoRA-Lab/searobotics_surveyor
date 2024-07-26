@@ -300,6 +300,98 @@ class Surveyor:
             pitch = hlp.get_pitch(attitude_message)
 
         return pitch
+
+    def get_roll(self):
+        """
+        Get roll information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing roll.
+        """
+        roll = None
+        attitude_message = None
+        while (roll == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            roll = hlp.get_roll(attitude_message)
+
+        return roll
+
+
+    def get_heave(self):
+        """
+        Get heave information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing heave.
+        """
+        heave = None
+        attitude_message = None
+        while (heave == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            heave = hlp.get_heave(attitude_message)
+
+        return heave
+
+    def get_accel_x(self):
+        """
+        Get accel_x information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing accel_x.
+        """
+        accel_x = None
+        attitude_message = None
+        while (accel_x == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            accel_x = hlp.get_accel_x(attitude_message)
+
+        return accel_x
+
+    def get_accel_y(self):
+        """
+        Get accel_y information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing accel_y.
+        """
+        accel_y = None
+        attitude_message = None
+        while (accel_y == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            accel_y = hlp.get_accel_x(attitude_message)
+
+        return accel_y
+
+
+    def get_accel_z(self):
+        """
+        Get accel_z information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing accel_z.
+        """
+        accel_z = None
+        attitude_message = None
+        while (accel_z == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            accel_z = hlp.get_accel_z(attitude_message)
+
+        return accel_z
+
+    def get_yaw_rate(self):
+        """
+        Get yaw_rate information from the Surveyor connection object.
+
+        Returns:
+            Tuple containing yaw_rate.
+        """
+        yaw_rate = None
+        attitude_message = None
+        while (yaw_rate == None) or (attitude_message == None):
+            attitude_message = hlp.get_attitude_message(self.receive())
+            yaw_rate = hlp.get_yaw_rate(attitude_message)
+
+        return yaw_rate
     
     def get_exo2_data(self):
         """
@@ -310,7 +402,7 @@ class Surveyor:
         """
         return self.exo2.get_exo2_data()
     
-    def get_data(self, keys=['coordinates', 'heading', 'exo2_data']):
+    def get_data(self, keys=['coordinates', 'heading', 'pitch', 'roll', 'accel_x', 'accel_y', 'accel_z', 'yaw_rate', 'exo2_data']):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
@@ -328,13 +420,25 @@ class Surveyor:
             'coordinates': self.get_gps_coordinates,# List with ["Latitude", "Longitude"]
             'heading': self.get_attitude, # List with ["Heading (degrees)"]
             'pitch': self.get_pitch, # List with ["Pitch (degrees)"]
+            'roll': self.get_roll, # List with ["Roll (degrees)"]
+            'heave': self.get_heave, # List with ["Heave"]
+            'accel_x': self.get_accel_x, # List with ["Accel_X Forward (G)"]
+            'accel_y': self.get_accel_y, # List with ["Accel_Y Starboard (G)"]
+            'accel_z': self.get_accel_z, # List with ["Accel_Z Down (G)"]
+            'yaw_rate': self.get_yaw_rate, # List with ["Yaw Rate (deg/s)"]
             'control_mode': self.get_control_mode # List with ["Control mode"]
         }
         data_labels = {
             'exo2_data' : ["date", "time", "odo (%sat)", "odo (mg/l)", "temp (c)", "cond (us/cm)", "salinity (ppt)", "pressure (psia)", "depth (m)"],
             'coordinates' : ["Latitude", "Longitude"],
             'heading' : ["Heading (degrees)"],
-            'pitch' : ["Pitch (degrees)"]
+            'pitch' : ["Pitch (degrees)"],
+            'roll' : ["Roll (degrees)"],
+            'heave' : ["Heave"],
+            'accel_x' : ["Accel_X Forward (G)"],
+            'accel_y' : ["Accel_Y Starboard (G)"],
+            'accel_z' : ["Accel_Z Down (G)"],
+            'yaw_rate' : ["Yaw Rate (deg/s)"],
             'control_mode' : ["Control mode"]}
 
         # Initialize a list to store retrieved data
