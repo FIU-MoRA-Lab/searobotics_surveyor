@@ -2,6 +2,7 @@ import socket
 import time
 from . import surveyor_helper as hlp
 from . import clients
+from geopy.distance import geodesic
 
 class Surveyor:
     def __init__(self, 
@@ -45,7 +46,7 @@ class Surveyor:
             print(f"Error connecting to {self.host}:{self.port} - {e}")
         return self
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         """
         Close the connection with the remote server.
         """
@@ -235,10 +236,9 @@ class Surveyor:
             tolerance_meters (float): The tolerance distance for the waypoint in meters. If the waypoint is within the margin, it will be loaded only once.
         """
         self.send_waypoints([waypoint], erp, throttle)
-        dist = tolerance_meters + 1
-
+        dist = geodesic(waypoint, self.get_gps_coordinates()).meters
         while self.get_control_mode() != 'Waypoint' and dist > tolerance_meters:
-            print(f'Distance to next waypoint {dist := geodesic(waypoint, boat.get_gps_coordinates()).meters}')
+            dist = geodesic(waypoint, self.get_gps_coordinates()).meters
             self.set_waypoint_mode()
 
 
@@ -447,6 +447,8 @@ class Surveyor:
         # Iterate over specified keys and retrieve data using corresponding getter functions
         for key in keys:
             data = getter_functions[key]()
+            if type(data) == float:
+                data = [data]
             if type(data) != dict: 
                 data = dict(zip(data_labels[key], data))
             data_dict.update(data)
