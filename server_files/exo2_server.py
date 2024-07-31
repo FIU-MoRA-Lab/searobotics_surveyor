@@ -70,15 +70,19 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         """
         Handle POST requests.
         """
+        if not self.serial_connection.is_open:
+            Exo2Server.initialize_serial()
 
         if self.path == '/data':
             content_length = int(self.headers['Content-Length'])
             command_received = self.rfile.read(content_length) + b'\r'
 
-            if not self.serial_connection.is_open or command_received == b'init\r':
-                Exo2Server.initialize_serial()
-                data = 'Connection Initialized'
-            else:
+            if command_received == b'init\r': # Handles init command (handcrafted command, not exo2 command)
+                if self.serial_connection.is_open:
+                    data = b'Connection Initialized'
+                else:
+                    data = b'Error openning socket'
+            else: # Handles any other command (exo2 commands)
                 data = self.send_and_receive_serial_command(command_received)
 
             self.send_response_to_client(200, data)
