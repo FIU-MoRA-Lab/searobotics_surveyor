@@ -3,6 +3,8 @@ import time
 from . import surveyor_helper as hlp
 from . import clients
 from geopy.distance import geodesic
+from datetime import datetime
+
 
 class Surveyor:
     def __init__(self, 
@@ -24,7 +26,7 @@ class Surveyor:
         self.host = host
         self.port = port
         self.exo2 = clients.Exo2Client(exo2_server_ip, exo2_server_port)
-        self.camera = clients.CameraClient(camera_server_ip, camera_server_port)
+        # self.camera = clients.CameraClient(camera_server_ip, camera_server_port)
     
 
     def __enter__(self):
@@ -237,10 +239,10 @@ class Surveyor:
         """
         self.send_waypoints([waypoint], erp, throttle)
         dist = geodesic(waypoint, self.get_gps_coordinates()).meters
+        self.set_waypoint_mode()
         while self.get_control_mode() != 'Waypoint' and dist > tolerance_meters:
             dist = geodesic(waypoint, self.get_gps_coordinates()).meters
             self.set_waypoint_mode()
-
 
     def get_control_mode(self):
         """
@@ -402,7 +404,13 @@ class Surveyor:
         """
         return self.exo2.get_exo2_data()
     
-    def get_data(self, keys=['coordinates', 'heading', 'pitch', 'roll', 'accel_x', 'accel_y', 'accel_z', 'yaw_rate', 'exo2_data']):
+    def get_current_date_and_time(self):
+        now = datetime.now()  # Get the current date and time
+        date_str = now.strftime("%Y%m%d")  # Format date as YYYY-MM-DD
+        time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
+        return [int(date_str), int(time_str)]
+    
+    def get_data(self, keys=['coordinates', 'time', 'heading', 'pitch', 'roll', 'accel_x', 'accel_y', 'accel_z', 'yaw_rate', 'exo2_data']):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
@@ -426,7 +434,8 @@ class Surveyor:
             'accel_y': self.get_accel_y, # List with ["Accel_Y Starboard (G)"]
             'accel_z': self.get_accel_z, # List with ["Accel_Z Down (G)"]
             'yaw_rate': self.get_yaw_rate, # List with ["Yaw Rate (deg/s)"]
-            'control_mode': self.get_control_mode # List with ["Control mode"]
+            'control_mode': self.get_control_mode, # List with ["Control mode"]
+            'time' : self.get_current_date_and_time # List with ['Local Time (YYMMDD)', 'Local Time (HHMMSS)']
         }
         data_labels = {
             'exo2_data' : ["date", "time", "odo (%sat)", "odo (mg/l)", "temp (c)", "cond (us/cm)", "salinity (ppt)", "pressure (psia)", "depth (m)"],
@@ -439,7 +448,8 @@ class Surveyor:
             'accel_y' : ["Accel_Y Starboard (G)"],
             'accel_z' : ["Accel_Z Down (G)"],
             'yaw_rate' : ["Yaw Rate (deg/s)"],
-            'control_mode' : ["Control mode"]}
+            'control_mode' : ["Control mode"],
+            'time' : ['Local Time (YYMMDD)', 'Local Time (HHMMSS)']}
 
         # Initialize a list to store retrieved data
         data_dict = {}
@@ -464,3 +474,8 @@ class Surveyor:
                    and the frame itself.
         """
         return self.camera.get_image()
+    
+    def get_time(self):
+        now = datetime.now()
+        return now.strftime("%H:%M:%S")
+
