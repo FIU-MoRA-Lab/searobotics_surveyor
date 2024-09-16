@@ -34,7 +34,7 @@ class CameraClient:
         self._frame_thread = threading.Thread(target=self._image_updater)
         self._frame_thread.daemon = True  # Daemonize the thread so it will exit when the main program exits
         self._frame_thread.start() 
-        time.sleep(0.1)# Give some time to update current imagess
+        time.sleep(0.1)# Give some time to update current images
 
         if not self.cap.isOpened():
             print(f'''Error: Unable to open video stream.

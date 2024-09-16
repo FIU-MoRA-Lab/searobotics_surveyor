@@ -231,7 +231,6 @@ class Surveyor:
         Load the next waypoint, send it to the boat and sets the boat to navigate towards it.
 
         Args:
-            boat (Surveyor): The Surveyor object representing the boat.
             waypoint (tuple): The waypoint coordinates to be sent.
             erp (list): A list of ERP coordinates.
             throttle (int): The desired throttle value for the boat.
@@ -410,12 +409,12 @@ class Surveyor:
         time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
         return [int(date_str), int(time_str)]
     
-    def get_data(self, keys=['coordinates', 'time', 'heading', 'pitch', 'roll', 'accel_x', 'accel_y', 'accel_z', 'yaw_rate', 'exo2_data']):
+    def get_data(self, keys=['coordinates', 'time', 'exo2_data']):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
         Args:
-            keys (list, optional): A list of keys indicating the types of data to retrieve. Defaults to ['exo2_data', 'coordinates'].
+            keys (list, optional): A list of keys indicating the types of data to retrieve. Defaults to ['exo2_data', 'time', 'coordinates'].
 
         Returns:
             dict: A dictionary containing the retrieved data for each specified key.
@@ -475,7 +474,4 @@ class Surveyor:
         """
         return self.camera.get_image()
     
-    def get_time(self):
-        now = datetime.now()
-        return now.strftime("%H:%M:%S")
 

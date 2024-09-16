@@ -680,6 +680,15 @@ def read_csv_into_tuples(filepath):
     """
     # Read the CSV file into a pandas DataFrame
     df = pd.read_csv(filepath)
+
+    try:
+        df = df[['Latitude', 'Longitude']]
+    except KeyError:
+        try:
+            df = df[['latitude', 'longitude']]
+        except KeyError:
+            print('Assuming first column to be Latitude and second to be Longitude')
+            df = df.iloc[:, :2]        
     
     # Convert the DataFrame rows into tuples and return as a list
     return [tuple(row) for row in df.values]
