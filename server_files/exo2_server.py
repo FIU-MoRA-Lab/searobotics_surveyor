@@ -33,39 +33,13 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         """
         try:
             self.serial_connection.write(command)
-            self.serial_connection.readline().strip()  # Read the command echo
-            data = self.serial_connection.readline().strip()  # Read the actual data
+            data = self.serial_connection.readline()  # Read the command echo
+            if not data or data.startswith(b'#') or any(c.isalpha() for c in str(data)):
+                data = self.serial_connection.readline().strip()  # Read the actual data
             return data
         except serial.SerialException as e:
             print(f"Serial communication error: {e}")
             return b'Error in serial communication'
-        
-    def handle_command(self, command_received):
-        """
-        Handles incoming commands.
-        
-        Args:
-            command_received (bytes): The command received from the serial connection.
-        
-        Returns:
-            bytes: Response message based on the command received.
-        """
-        if command_received == b'init\r':
-            # Handles init command (handcrafted command, not exo2 command)
-            try:
-                if self.serial_connection.is_open:
-                    self.serial_connection.close()
-                Exo2Server.initialize_serial()
-                data = b'Exo2 serial connection initialized'
-            except Exception as e:
-                # Log the exception if needed: print(f"Exception: {e}")
-                data = b'Error opening Exo2 serial socket'
-        else:
-            # Handles any other command (exo2 commands)
-            data = self.send_and_receive_serial_command(command_received)
-        
-        return data
-
 
     def send_response_to_client(self, response_code, data):
         """
@@ -103,7 +77,15 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         if self.path == '/data':
             content_length = int(self.headers['Content-Length'])
             command_received = self.rfile.read(content_length) + b'\r'
-            data = self.handle_command(command_received)
+
+            if command_received == b'init\r': # Handles init command (handcrafted command, not exo2 command)
+                if self.serial_connection.is_open:
+                    data = b'Connection Initialized'
+                else:
+                    data = b'Error openning socket'
+            else: # Handles any other command (exo2 commands)
+                data = self.send_and_receive_serial_command(command_received)
+
             self.send_response_to_client(200, data)
         else:
             self.send_response_to_client(404, b'Not found')
@@ -135,8 +117,7 @@ if __name__ == "__main__":
         'timeout': 0.1
     }
 
-    print("Usage: server.py <port> <com_port> <baud_rate> <timeout>\n" \
-          f"Default values: {args}")
+    print("Usage: server.py <port> <com_port> <baud_rate> <timeout>")
 
     if len(sys.argv) > 0:
         args.update(zip(args.keys(), sys.argv[1:]))
