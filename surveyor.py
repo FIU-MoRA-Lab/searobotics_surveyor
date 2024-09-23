@@ -9,8 +9,8 @@ from datetime import datetime
 class Surveyor:
     def __init__(self, 
                 host = '192.168.0.50', port = 8003,
-                exo2_server_ip = '192.168.0.68', exo2_server_port = 5000,
-                camera_server_ip = '192.168.0.20', camera_server_port = 5001):
+                sensors_to_use = ['exo2', 'camera'], 
+                sensors_config = {'exo2': {}, 'camera': {}}):
         
         """
         Initialize the Surveyor object with the server IP addresses and port numbers.
@@ -25,8 +25,17 @@ class Surveyor:
         """
         self.host = host
         self.port = port
-        self.exo2 = clients.Exo2Client(exo2_server_ip, exo2_server_port)
-        # self.camera = clients.CameraClient(camera_server_ip, camera_server_port)
+        DEFAULT_CONFIGS = {
+            'exo2': {'exo2_server_ip' : '192.168.0.68', 'exo2_server_port' : 5000},
+             'camera': {'camera_server_ip' : '192.168.0.20', 'camera_server_port' : 5001}}
+        
+        for sensor in sensors_to_use:
+            if not sensors_config[sensor]:
+                sensors_config[sensor].update(DEFAULT_CONFIGS[sensor])
+        if 'exo2' in sensors_to_use:    
+            self.exo2 = clients.Exo2Client(sensors_config['exo2']['exo2_server_ip'], sensors_config['exo2']['exo2_server_port'])
+        if 'camera' in sensors_to_use:     
+            self.camera = clients.CameraClient(sensors_config['camera']['camera_server_ip'], sensors_config['camera']['camera_server_port'])
     
 
     def __enter__(self):

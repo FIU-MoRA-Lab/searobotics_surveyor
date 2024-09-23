@@ -33,9 +33,9 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         """
         try:
             self.serial_connection.write(command)
-            data = self.serial_connection.readline()  # Read the command echo
+            data = self.serial_connection.readline().replace(b'\r\n', b'')  # Read the command echo
             if not data or data.startswith(b'#') or any(c.isalpha() for c in str(data)):
-                data = self.serial_connection.readline().strip()  # Read the actual data
+                data = self.serial_connection.readline().replace(b'\r\n', b'').strip()  # Read the actual data
             return data
         except serial.SerialException as e:
             print(f"Serial communication error: {e}")
