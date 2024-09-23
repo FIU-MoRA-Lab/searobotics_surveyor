@@ -8,34 +8,52 @@ from datetime import datetime
 
 class Surveyor:
     def __init__(self, 
-                host = '192.168.0.50', port = 8003,
-                sensors_to_use = ['exo2', 'camera'], 
-                sensors_config = {'exo2': {}, 'camera': {}}):
-        
+             host='192.168.0.50', port=8003,
+             sensors_to_use=['exo2', 'camera'], 
+             sensors_config={'exo2': {}, 'camera': {}}):
+    
         """
-        Initialize the Surveyor object with the server IP addresses and port numbers.
+        Initialize the Surveyor object with server connection details and sensor configurations.
 
         Args:
-            host (str, optional): The IP address of the remote server. Default is '192.168.0.50'.
-            port (int, optional): The port number of the remote server. Default is 8003.
-            exo2_server_ip (str, optional): The IP address of the EXO2 server. Default is '192.168.0.68'.
-            exo2_server_port (int, optional): The port number of the EXO2 server. Default is 5000.
-            camera_server_ip (str, optional): The IP address of the camera server. Default is '192.168.0.20'.
-            camera_server_port (int, optional): The port number of the camera server. Default is 5001.
+            host (str, optional): The IP address of the main server to connect to. Defaults to '192.168.0.50'.
+            port (int, optional): The port number of the main server. Defaults to 8003.
+            sensors_to_use (list of str, optional): List of sensor types to initialize (e.g., 'exo2', 'camera').
+                                                    Defaults to ['exo2', 'camera'].
+            sensors_config (dict, optional): A dictionary for configuring each sensor. If a sensor's configuration is empty,
+                                            it will be populated with default values. Defaults to 
+                                            {'exo2': {}, 'camera': {}}.
+
+        Sensor Config Defaults:
+            - 'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000}
+            - 'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001}
+
+        Attributes:
+            host (str): IP address of the main server.
+            port (int): Port number of the main server.
+            exo2 (Exo2Client): Client for interacting with the EXO2 sensor (if 'exo2' is in sensors_to_use).
+            camera (CameraClient): Client for interacting with the camera sensor (if 'camera' is in sensors_to_use).
         """
         self.host = host
         self.port = port
         DEFAULT_CONFIGS = {
-            'exo2': {'exo2_server_ip' : '192.168.0.68', 'exo2_server_port' : 5000},
-             'camera': {'camera_server_ip' : '192.168.0.20', 'camera_server_port' : 5001}}
+            'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
+            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001}
+        }
         
+        # Apply default configurations if not provided
         for sensor in sensors_to_use:
             if not sensors_config[sensor]:
                 sensors_config[sensor].update(DEFAULT_CONFIGS[sensor])
+        
+        # Initialize sensors based on sensors_to_use
         if 'exo2' in sensors_to_use:    
-            self.exo2 = clients.Exo2Client(sensors_config['exo2']['exo2_server_ip'], sensors_config['exo2']['exo2_server_port'])
+            self.exo2 = clients.Exo2Client(sensors_config['exo2']['exo2_server_ip'], 
+                                        sensors_config['exo2']['exo2_server_port'])
+        
         if 'camera' in sensors_to_use:     
-            self.camera = clients.CameraClient(sensors_config['camera']['camera_server_ip'], sensors_config['camera']['camera_server_port'])
+            self.camera = clients.CameraClient(sensors_config['camera']['camera_server_ip'], 
+                                            sensors_config['camera']['camera_server_port'])
     
 
     def __enter__(self):
