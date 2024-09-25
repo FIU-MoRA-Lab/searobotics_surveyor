@@ -1,0 +1,8 @@
+adafruit_circuitpython_rplidar==1.2.14
+Flask==2.2.2
+numpy==1.24.2
+opencv_python==4.9.0.80
+picamera2==0.3.18
+Pillow==10.4.0
+pygame==2.1.2
+pyserial==3.5
