@@ -26,8 +26,13 @@ To run the code in this repository, you will need the following hardware compone
 
 # Package Contents
 ## `clients`
+Each sensor implements a structure server-client to broadcast its data. The clients manage the data as their unique class to be easily accesible by the user.
 ## `debugging_files`
-##
+Files intended to test specific capabilities; they have no use in the library itself. In the future, they will be deprecated.
+## `servers` 
+As said before each client has a server counterpart in charge of retreiving the information from the sensor and broadcasting it into an ip:port address.
+## `requirements`
+.txt files containing the essential Python packages to be installed in order to execute any file contained in the `servers` folder.  
 
 # Installation and Set-up
 
@@ -37,10 +42,15 @@ To run the code in this repository, you will need the following hardware compone
 4. Power on the Surveyor, network box, Antenna, and provided network attached laptop.
 5. Using the companion laptop, load the SeaRobotics software and power on the Exo2 Sonde.
 6. Using the companion laptop, access the DAC (windows computer with black background) by making a remote connection to the address `192.168.0.68` (it should be preset by default).
-7. From the `server_files` folder, copy the file `exo2_server.py` into the DAC desktop and install Python and the necessary packages to run it (coming soon).
+7. From the `server_files` folder, copy the file `exo2_server.py` into the DAC desktop and install Python and the necessary packages. To do so run
+```bash
+    pip3 install -r requirements.txt
+```
 8. Using the companion laptop, access the Raspberry Pi by making a remote connection to the address `192.168.0.20` (the Pi should have this static address set beforehand).
-9. From the `server_files` folder, copy either the file `picamera_server.py` or the file `picamera_server_flask.py` into the Pi and install Python and the necessary packages to run it (coming soon).
-
+9. From the `server_files` folder, copy either the file `picamera_server.py` or the file `picamera_server_flask.py` into the Pi and install Python and the necessary packages. To do so run
+```bash
+    pip3 install -r requirements.txt
+```
 # Media
 - Coming soon
 
