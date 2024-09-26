@@ -2,6 +2,7 @@ import http.server
 import socketserver
 import sys
 import serial
+import argparse
 
 class Exo2Server(http.server.SimpleHTTPRequestHandler):
     com_port = "COM4"  # Default values
@@ -34,7 +35,7 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         try:
             self.serial_connection.write(command)
             data = self.serial_connection.readline().strip()  # Read the command echo
-            if not data or data.startswith(b'#') or any(c.isalpha() for c in str(data)):
+            if not data or data.startswith(b'#') or bool(re.search(r'[a-zA-Z]', data.decode('utf-8') )):
                 data = self.serial_connection.readline().strip()  # Read the actual data
             return data
         except serial.SerialException as e:
@@ -110,17 +111,15 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    args = {
-        'port': 5000,
-        'com_port': 'COM4',
-        'baud_rate': 9600,
-        'timeout': 0.1
-    }
+    # Add arguments
+    parser = argparse.ArgumentParser(description='Server script for serial communication.')
+    parser.add_argument('--port', type=int, default=5000, help='Port number (default: 5000).')
+    parser.add_argument('--com_port', type=str, default='COM4', help='COM port (default: COM4).')
+    parser.add_argument('--baud_rate', type=int, default=9600, help='Baud rate (default: 9600).')
+    parser.add_argument('--timeout', type=float, default=0.1, help='Timeout in seconds (default: 0.1).')
 
-    print("Usage: server.py <port> <com_port> <baud_rate> <timeout>")
-
-    if len(sys.argv) > 0:
-        args.update(zip(args.keys(), sys.argv[1:]))
+    # Parse the command line arguments
+    args = vars(parser.parse_args())
 
     Exo2Server.port = int(args['port'])
     Exo2Server.com_port = args['com_port']

@@ -4,8 +4,8 @@ import cv2
 import picamera2
 import sys
 import io
-import numpy as np
 from PIL import Image
+import argparse
 
 def get_video_source_fnc(source='picamera', width=640, height=480):
     """
@@ -114,27 +114,17 @@ def main(host, port):
 
 
 if __name__ == "__main__":
-    """
-    Server broadcasting picamera image to a given ip address
+    parser = argparse.ArgumentParser(description='PiCamera Server Script')
 
-    Args:
-        host (str): IP address of the server.
-        port (int): Port number of the server.
-        camera_source_type (str): Type of camera source (e.g., 'usb').
-        image_width (int): Width of the image frame.
-        image_height (int): Height of the image frame.
-    """
-    args = {'host': '192.168.0.20',
-            'port': 5001,
-            'camera_source_type': 'picamera',
-            'image_width': 800,
-            'image_height': 600}
+    # Add arguments with default values
+    parser.add_argument('--host', type=str, default='192.168.0.20', help='Host IP (default: 192.168.0.20).')
+    parser.add_argument('--port', type=int, default=5001, help='Port number (default: 5001).')
+    parser.add_argument('--camera_source_type', type=str, default='picamera', help='Camera source type (default: picamera).')
+    parser.add_argument('--image_width', type=int, default=800, help='Image width (default: 800).')
+    parser.add_argument('--image_height', type=int, default=600, help='Image height (default: 600).')
 
-    if (len(sys.argv) == 2) or (len(sys.argv) > len(args) + 1):
-        print("Usage: python picamera_server.py <host_ip> <port> <camera_source_type> <image_width> <image_height>. If providing arguments, provide at least the first two. ")
-        sys.exit(1)
-    elif len(sys.argv) > 1:
-        args.update(zip(args.keys(), sys.argv[1:]))
+    # Parse the command line arguments
+    args = vars(parser.parse_args())
         
     VideoStreamHandler.capture_frame = get_video_source_fnc(args['camera_source_type'], int(args['image_width']), int(args['image_height']))
     main(args['host'], int(args['port']))

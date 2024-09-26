@@ -3,7 +3,8 @@ from PIL import Image
 import cv2
 import io
 import sys
-import picamera2
+# import picamera2
+import argparse
 
 app = Flask(__name__)
 
@@ -84,7 +85,7 @@ def generate_frames():
         imgByteArr = io.BytesIO()
         image.save(imgByteArr, format='JPEG')
         imgByteArr = imgByteArr.getvalue()
-        print('Sending image...')
+        print('Sending image...', end = '\r')
         yield (b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + imgByteArr + b'\r\n')
 
@@ -109,28 +110,18 @@ def main(host, port):
     app.run(debug=False, host=args['host'], port=args['port'])
 
 if __name__ == '__main__':
-    """
-    Flask server broadcasting picamera image to a given ip address
 
-    Args:
-        host (str): IP address of the server.
-        port (int): Port number of the server.
-        camera_source_type (str): Type of camera source (e.g., 'usb').
-        image_width (int): Width of the image frame.
-        image_height (int): Height of the image frame.
-    """
-    args = {'host': '192.168.0.20',
-            'port': 5001,
-            'camera_source_type': 'picamera',
-            'image_width': 800,
-            'image_height': 600}
+    parser = argparse.ArgumentParser(description='PiCamera Server Script using Flask')
 
-    if (len(sys.argv) == 2) or (len(sys.argv) > len(args) + 1):
-        print("Usage: python picamera_server.py <host_ip> <port> <camera_source_type> <image_width> <image_height>. If providing arguments, provide at least the first two. ")
-        sys.exit(1)
-    
-    if len(sys.argv) > 1:
-        args.update(zip(args.keys(), sys.argv[1:]))
+    # Add arguments with default values
+    parser.add_argument('--host', type=str, default='192.168.0.20', help='Host IP (default: 192.168.0.20).')
+    parser.add_argument('--port', type=int, default=5001, help='Port number (default: 5001).')
+    parser.add_argument('--camera_source_type', type=str, default='picamera', help='Camera source type (default: picamera).')
+    parser.add_argument('--image_width', type=int, default=800, help='Image width (default: 800).')
+    parser.add_argument('--image_height', type=int, default=600, help='Image height (default: 600).')
+
+    # Parse the command line arguments
+    args = vars(parser.parse_args())
         
     video_capture_src = get_video_source_fnc(args['camera_source_type'], args['image_width'], args['image_height'])
     main(args['host'], args['port'])
