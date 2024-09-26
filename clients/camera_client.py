@@ -2,6 +2,7 @@ import cv2
 import sys
 import threading
 import time
+import argparse
 
 class CameraClient:
     """
@@ -65,20 +66,17 @@ class CameraClient:
             time.sleep(0.015)  # Prevents excessive CPU usage by the thread (~66 FPS)
 
 if __name__ == "__main__":
-    """
-    Main program to run the CameraClient and display the video stream.
 
-    Args:
-        host (str): IP address of the server.
-        port (int): Port number of the server.
-    """
-    args = {'host': '192.168.0.20', 'port': 5001}
+    # Create an ArgumentParser object
+    print(f'Run {sys.argv[0]} -h  for help')
+    parser = argparse.ArgumentParser(description='Client script for PiCamera.')
 
-    if len(sys.argv) not in [2, 3]:
-        print("Usage: python picamera_client.py <host_ip> <port>")
-        sys.exit(1)
+    # Add arguments
+    parser.add_argument('--host', type=str, default='192.168.0.20', help='IP address of the host (default: 192.168.0.20).')
+    parser.add_argument('--port', type=int, default=5001, help='Port number (default: 5001).')
 
-    args.update(zip(args.keys(), sys.argv[1:]))
+    # Parse the command line arguments
+    args = vars(parser.parse_args())
 
     picamera_client = CameraClient(args['host'], int(args['port']))
 

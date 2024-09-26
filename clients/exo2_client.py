@@ -1,5 +1,6 @@
 import sys
 import requests
+import argparse
 
 PARAMS_DICT = {
     1: "Temperature (C)", # In degrees
@@ -176,13 +177,15 @@ def main(args):
             # Example of received data: "101723 141347 77.55 6.79 21.922 0.09 -0.00 14.71 10.364"
 
 if __name__ == "__main__":
-    args = {'server_ip': '192.168.0.68', 'server_port': '5000'}
-    
-    if len(sys.argv[1:]) not in [0, 2]:
-        print("Usage: client.py <server_ip> <server_port>")
-        sys.exit(1)
+    print(f'Run {sys.argv[0]} -h  for help')
+    parser = argparse.ArgumentParser(description='Client script to connect to a server.')
 
-    if len(sys.argv[1:]) > 0:
-        args.update(zip(args.keys(), sys.argv[1:]))
-    
-    main(args)
+    # Add arguments
+    parser.add_argument('--server_ip', type=str, default='192.168.0.68', help='IP address of the server (default: 192.168.0.68).')
+    parser.add_argument('--server_port', type=int, default=5000, help='Port number of the server (default: 5000).')
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+
+    # Call the main function with the parsed arguments
+    main(vars(args))

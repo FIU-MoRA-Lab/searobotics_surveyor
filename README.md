@@ -69,6 +69,6 @@ Where this repo was cloned into the `surveyor_library` folder.
 Comming soon
 
 # Related Links
-- EXO2 Multiparameter Sonde(https://www.ysi.com/exo2)
+- EXO2 Multiparameter Sonde (https://www.ysi.com/exo2)
 - Sea Robotics Surveyor (https://www.searobotics.com/products/autonomous-surface-vehicles/sr-surveyor-class)
 
