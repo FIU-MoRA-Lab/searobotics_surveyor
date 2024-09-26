@@ -3,7 +3,7 @@ from PIL import Image
 import cv2
 import io
 import sys
-# import picamera2
+import picamera2
 import argparse
 
 app = Flask(__name__)
