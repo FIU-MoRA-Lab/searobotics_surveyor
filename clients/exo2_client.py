@@ -104,7 +104,7 @@ class Exo2Client:
             print(f"Error sending command to server: {e}")
             return None
 
-    def get_data(self):
+    def _get_data(self):
        """
        Send a GET request to the exo2 sensor and retrieve the data.
 
@@ -126,10 +126,10 @@ class Exo2Client:
         Returns:
             list: A list of float values representing the data from the Exo2 sensor.
         """
-        exo2_data_str = self.get_data()
-        while not exo2_data_str or "#" in exo2_data_str:
-            # Keep requesting data until a non-empty string (other than "#") is received
-            exo2_data_str = self.get_data()
+        exo2_data_str = self._get_data()
+        while not exo2_data_str:
+            # Keep requesting data until a non-empty string is received
+            exo2_data_str = self._get_data()
 
         # Split the received string on whitespace and convert values to floats
         
@@ -146,12 +146,17 @@ class Exo2Client:
             str: The parameters received from the server, or None if an error occurred.
         """
         param_str = self.get_data_from_command('para')
-        while not param_str or "#" in param_str:
+        while not param_str:
             # Keep requesting data until a non-empty string (other than "#") is received
             param_str = self.get_data_from_command('para')
+            try:
+                param_list = list(map(int, param_str.split()))
+            except:
+                print('Received a non-integer list, attempting again...')
+                param_str = None
 
         # Split the received string on whitespace and convert values to ints
-        param_list = list(map(int, param_str.split()))
+        
         return {key : PARAMS_DICT[key] for key in param_list}
     
     def initialize_server_serial_connection(self):
