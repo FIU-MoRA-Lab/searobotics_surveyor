@@ -3,6 +3,7 @@ import socketserver
 import sys
 import serial
 import argparse
+import re
 
 class Exo2Server(http.server.SimpleHTTPRequestHandler):
     com_port = "COM4"  # Default values

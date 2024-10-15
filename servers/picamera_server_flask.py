@@ -78,14 +78,18 @@ def generate_frames():
         # Capture frame-by-frame
         success, frame = video_capture_src()
 
-        if not success:
+        if success:
+            print('Sending image...', end = '\r')
+        else:
+            print('Image not found, closing video capture...')
             break
+        
 
         image = Image.fromarray(frame)
         imgByteArr = io.BytesIO()
         image.save(imgByteArr, format='JPEG')
         imgByteArr = imgByteArr.getvalue()
-        print('Sending image...', end = '\r')
+        
         yield (b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + imgByteArr + b'\r\n')
 
