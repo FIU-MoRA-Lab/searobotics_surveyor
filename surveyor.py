@@ -9,8 +9,8 @@ from datetime import datetime
 class Surveyor:
     def __init__(self, 
              host='192.168.0.50', port=8003,
-             sensors_to_use=['exo2', 'camera'], 
-             sensors_config={'exo2': {}, 'camera': {}}):
+             sensors_to_use=['exo2', 'camera', 'lidar'], 
+             sensors_config={'exo2': {}, 'camera': {}, 'lidar' :{}}):
     
         """
         Initialize the Surveyor object with server connection details and sensor configurations.
@@ -18,27 +18,30 @@ class Surveyor:
         Args:
             host (str, optional): The IP address of the main server to connect to. Defaults to '192.168.0.50'.
             port (int, optional): The port number of the main server. Defaults to 8003.
-            sensors_to_use (list of str, optional): List of sensor types to initialize (e.g., 'exo2', 'camera').
-                                                    Defaults to ['exo2', 'camera'].
+            sensors_to_use (list of str, optional): List of sensor types to initialize (e.g., 'exo2', 'camera' or 'lidar').
+                                                    Defaults to ['exo2', 'camera', 'lidar'].
             sensors_config (dict, optional): A dictionary for configuring each sensor. If a sensor's configuration is empty,
                                             it will be populated with default values. Defaults to 
-                                            {'exo2': {}, 'camera': {}}.
+                                            {'exo2': {}, 'camera': {}, 'lidar' :{}}.
 
         Sensor Config Defaults:
             - 'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000}
             - 'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001}
+            - 'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
 
         Attributes:
             host (str): IP address of the main server.
             port (int): Port number of the main server.
             exo2 (Exo2Client): Client for interacting with the EXO2 sensor (if 'exo2' is in sensors_to_use).
             camera (CameraClient): Client for interacting with the camera sensor (if 'camera' is in sensors_to_use).
+            lidar (LidarClient): Client for interacting with the lidar sensor (if 'lidar' is in sensors_to_use).
         """
         self.host = host
         self.port = port
         DEFAULT_CONFIGS = {
             'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
-            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001}
+            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001},
+            'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
         }
         
         # Apply default configurations if not provided
@@ -54,6 +57,10 @@ class Surveyor:
         if 'camera' in sensors_to_use:     
             self.camera = clients.CameraClient(sensors_config['camera']['camera_server_ip'], 
                                             sensors_config['camera']['camera_server_port'])
+            
+        if 'lidar' in sensors_to_use:     
+            self.lidar = clients.LidarClient(sensors_config['camera']['lidar_server_ip'], 
+                                            sensors_config['camera']['lidar_server_port'])
     
 
     def __enter__(self):
@@ -500,5 +507,15 @@ class Surveyor:
                    and the frame itself.
         """
         return self.camera.get_image()
+    
+    def get_lidar_measurements(self):
+        """
+        Retrieve the lidar measurements.
+
+        Returns:
+            list: A 360 list containing the lidar measurements (one per degree) im meters or None if the data was not correclty fetched.
+        """
+        return self.lidar.get_lidar_measurements()
+
     
 

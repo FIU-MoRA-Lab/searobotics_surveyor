@@ -6,7 +6,7 @@ import argparse
 
 class CameraClient:
     """
-    CameraClient class represents a client to receive video stream from a PiCameraServer.
+    CameraClient class represents a client to receive video stream from a Camera server.
 
     Args:
         server_ip (str): IP address of the server (default is "192.168.0.20").

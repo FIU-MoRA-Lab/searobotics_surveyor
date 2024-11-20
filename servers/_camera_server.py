@@ -114,7 +114,7 @@ def main(host, port):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='PiCamera Server Script')
+    parser = argparse.ArgumentParser(description='Camera Server Script')
 
     # Add arguments with default values
     parser.add_argument('--host', type=str, default='192.168.0.20', help='Host IP (default: 192.168.0.20).')

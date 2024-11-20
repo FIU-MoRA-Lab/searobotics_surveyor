@@ -98,7 +98,7 @@ def index():
     """
     Displays a message indicating that the stream is online.
     """
-    return 'Stream online!'
+    return 'Camera stream online!'
 
 @app.route('/video_feed')
 def video_feed():
@@ -111,7 +111,7 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def main(host, port):
-    app.run(debug=False, host=args['host'], port=args['port'])
+    app.run(debug=False, host=host, port=port)
 
 if __name__ == '__main__':
 
