@@ -13,8 +13,9 @@ FIG = None
 SCATTER = None
 ANGLES = None
 N = None
+SAFE_TRESHOLD = None
 
-def initialize_and_start(lidar_port, baudrate, n):
+def initialize_and_start(lidar_port, baudrate, n, lim, op_angle):
     """
     Initialize the Lidar and start data collection in a separate thread.
     
@@ -22,6 +23,8 @@ def initialize_and_start(lidar_port, baudrate, n):
     lidar_port (str): The port for the Lidar device (e.g., '/dev/ttyUSB0').
     baudrate (int): The baud rate for the Lidar communication.
     n (int): The step size for data averaging.
+    lim (float): Limit for the lidar range.
+    op_angle (float): Opening angle to draw.
     """
     global FIG, SCATTER, ANGLES, N
     
@@ -44,8 +47,12 @@ def initialize_and_start(lidar_port, baudrate, n):
     FIG = plt.figure(figsize=(6, 6))
     ax = FIG.add_subplot(111, polar=True)
     SCATTER = ax.scatter([], [], c='b', s=10+n)  # LIDAR trace
-    ax.set_ylim(0, 2)  # Adjust max range to your LIDAR's range
+    ax.set_ylim(0, lim)  # Adjust max range to your LIDAR's range
     ax.set_theta_offset(np.pi / 2)  # Set 0 degree to the top
+    ax.set_theta_direction(-1)
+    ax.set_thetamin(-op_angle/2)  
+    ax.set_thetamax(op_angle/2) 
+
     N = n
     ANGLES = np.deg2rad(np.arange(0, 360, N))  # Convert angles to radians
 
@@ -76,33 +83,27 @@ def process_lidar_data(n=1):
 
     # Reshape data into chunks and apply median filtering
     averaged = np.asarray(LIDAR_MEASUREMENTS).reshape(-1, n)
-    averaged[averaged == 0.0] = 20.0  # Replace zero values with a maximum placeholder
+    averaged[averaged == 0.0] = 20  # Replace zero values with a maximum placeholder
     return np.apply_along_axis(filter, arr=averaged, axis=1)
 
 app = Flask(__name__)
 
 def generate_mjpeg_stream():
+    global SAFE_TRESHOLD, ANGLES, SCATTER, FIG, N
     """
     Generates an MJPEG stream of the Lidar data.
     
     Yields frames in JPEG format for streaming.
     """
     while True:
-        # start_time = time.time()
         distances = process_lidar_data(N)  # Process the Lidar data
-        # processing_time = time.time() - start_time
-        # print(f"Processing time: {processing_time:.4f} seconds")
-
         # Update the scatter plot with the processed data
         SCATTER.set_offsets(np.c_[ANGLES, distances])
+        SCATTER.set_color(np.where(distances < SAFE_TRESHOLD, 'red', 'blue'))    
         plt.draw()  # Refresh the plot
-
         # Save the figure to a buffer
         buf = io.BytesIO()
         FIG.savefig(buf, format='jpeg')
-        # save_time = time.time() - processing_time - start_time
-        # print(f"Save time: {save_time:.4f} seconds")
-        
         buf.seek(0)
         frame = buf.read()
 
@@ -132,7 +133,7 @@ def vector():
     """
     return jsonify(LIDAR_MEASUREMENTS)
 
-def main(host, port, lidar_port, baudrate, n):
+def main(host, port, lidar_port, baudrate, n, lim, op_angle):
     """
     Start the Flask server and initialize Lidar data collection.
     
@@ -142,9 +143,11 @@ def main(host, port, lidar_port, baudrate, n):
     lidar_port (str): The port for the Lidar device.
     baudrate (int): The baud rate for the Lidar communication.
     n (int): The step size for data averaging.
+    lim (float): Limit for the lidar range.
+    op_angle (float): Opening angle to draw.
     """
-    initialize_and_start(lidar_port, baudrate, n)
-    app.run(debug=False, port=port, host=host)
+    initialize_and_start(lidar_port, baudrate, n, lim, op_angle)
+    app.run(threaded=True, debug=False, port=port, host=host)
 
 if __name__ == '__main__':
     # Argument parsing for configuring the server
@@ -155,7 +158,11 @@ if __name__ == '__main__':
     parser.add_argument('--lidar_port', type=str, default='/dev/ttyUSB0', help='Lidar serial port (default: /dev/ttyUSB0).')
     parser.add_argument('--baudrate', type=int, default=1000000, help='Lidar baud rate (default: 1000000).')
     parser.add_argument('--n', type=int, default=1, help='Number of elements to average (default: 1).')
+    parser.add_argument('--lim', type=float, default=3.0, help='Plot boundary (default: 3.0 meters).')
+    parser.add_argument('--op_angle', type=float, default=120, help='Opening angle (default: 120 degrees).')
+    parser.add_argument('--safety_dist', type=float, default=2.0, help='Opening angle (default: 2.0 meters).')
     
     # Parse arguments and start the server
     args = vars(parser.parse_args())
-    main(args['host'], args['port'], args['lidar_port'], args['baudrate'], args['n'])
+    SAFE_TRESHOLD = args['safety_dist']
+    main(args['host'], args['port'], args['lidar_port'], args['baudrate'], args['n'],  args['lim'],  args['op_angle'])

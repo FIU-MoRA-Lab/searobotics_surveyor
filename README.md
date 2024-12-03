@@ -47,7 +47,7 @@ As said before each client has a server counterpart in charge of retreiving the 
     pip3 install -r requirements_exo2_dac.txt
 ```
 8. Using the companion laptop, access the Raspberry Pi by making a remote connection to the address `192.168.0.20` (the Pi should have this static address set beforehand).
-9. From the `servers` folder, copy either the file `camera_server.py` or the file `_camera_server.py` and `servers/requirements_camera.txt` into the Pi and install Python and the necessary packages. To do so run
+9. From the `servers` folder, copy either the file `camera_server.py` or the file `_camera_server.py` and `servers/requirements_pi.txt` into the Pi and install Python and the necessary packages. To do so run
 ```bash
     pip3 install -r requirements_camera.txt
 ```

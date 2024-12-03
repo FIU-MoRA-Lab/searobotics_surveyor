@@ -29,7 +29,7 @@ class LidarClient:
         Retrieves the lidar measurements the lidar stream.
 
         Returns:
-            list: A 360 list containing the lidar measurements (one per degree) im meters or None if the data was not correclty fetched.
+            list: A 360 list containing the lidar measurements (one per degree in clockwise sense) im meters or None if the data was not correclty fetched.
         """
         # Send a GET request to the Flask server
         response = requests.get(self.server_url)
@@ -64,9 +64,9 @@ if __name__ == '__main__':
     scatter = ax.scatter([], [], c = 'b', s=10)  # LIDAR trace
     ax.set_ylim(0, 2)  # Adjust max range to your LIDAR's range
     ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
 
     angles = np.deg2rad(np.arange(0, 360, 1))
-    # plt.plot()
     while True:
         distances = lidar_client.get_data()
         scatter.set_offsets(np.c_[angles, distances])  # Update the plot
