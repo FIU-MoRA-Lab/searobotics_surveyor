@@ -59,8 +59,8 @@ class Surveyor:
                                             sensors_config['camera']['camera_server_port'])
             
         if 'lidar' in sensors_to_use:     
-            self.lidar = clients.LidarClient(sensors_config['camera']['lidar_server_ip'], 
-                                            sensors_config['camera']['lidar_server_port'])
+            self.lidar = clients.LidarClient(sensors_config['lidar']['lidar_server_ip'], 
+                                            sensors_config['lidar']['lidar_server_port'])
     
 
     def __enter__(self):
