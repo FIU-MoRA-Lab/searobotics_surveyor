@@ -4,7 +4,15 @@ from . import surveyor_helper as hlp
 from . import clients
 from geopy.distance import geodesic
 from datetime import datetime
+import threading
 
+
+
+DEFAULT_CONFIGS = {
+            'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
+            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001},
+            'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
+        }
 
 class Surveyor:
     def __init__(self, 
@@ -38,30 +46,29 @@ class Surveyor:
         """
         self.host = host
         self.port = port
-        DEFAULT_CONFIGS = {
-            'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
-            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001},
-            'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
-        }
+        
+        self._state = {}
         
         # Apply default configurations if not provided
         for sensor in sensors_to_use:
-            if not sensors_config[sensor]:
-                sensors_config[sensor].update(DEFAULT_CONFIGS[sensor])
+            if sensors_config[sensor]:
+                DEFAULT_CONFIGS[sensor].update(sensors_config[sensor])
         
         # Initialize sensors based on sensors_to_use
         if 'exo2' in sensors_to_use:    
-            self.exo2 = clients.Exo2Client(sensors_config['exo2']['exo2_server_ip'], 
-                                        sensors_config['exo2']['exo2_server_port'])
+            self.exo2 = clients.Exo2Client(DEFAULT_CONFIGS['exo2']['exo2_server_ip'], 
+                                        DEFAULT_CONFIGS['exo2']['exo2_server_port'])
         
         if 'camera' in sensors_to_use:     
-            self.camera = clients.CameraClient(sensors_config['camera']['camera_server_ip'], 
-                                            sensors_config['camera']['camera_server_port'])
+            self.camera = clients.CameraClient(DEFAULT_CONFIGS['camera']['camera_server_ip'], 
+                                            DEFAULT_CONFIGS['camera']['camera_server_port'])
             
         if 'lidar' in sensors_to_use:     
-            self.lidar = clients.LidarClient(sensors_config['lidar']['lidar_server_ip'], 
-                                            sensors_config['lidar']['lidar_server_port'])
-    
+            self.lidar = clients.LidarClient(DEFAULT_CONFIGS['lidar']['lidar_server_ip'], 
+                                            DEFAULT_CONFIGS['lidar']['lidar_server_port'])
+            
+        self._parallel_update = True
+
 
     def __enter__(self):
         """
@@ -78,6 +85,9 @@ class Surveyor:
             self.socket.settimeout(5)  # Set a timeout for the connection
             self.socket.connect((self.host, self.port))
             print('Surveyor connected!')
+            self._receive_and_update_thread = threading.Thread(target=self._receive_and_update_thread)
+            self._receive_and_update_thread.daemon = True
+            self._receive_and_update_thread.start()
         except socket.error as e:
             print(f"Error connecting to {self.host}:{self.port} - {e}")
         return self
@@ -86,6 +96,8 @@ class Surveyor:
         """
         Close the connection with the remote server.
         """
+        self._parallel_update = False
+        self._receive_and_update_thread.join()
         self.socket.close()
 
     def send(self, msg):
@@ -120,6 +132,7 @@ class Surveyor:
             socket.timeout: If the socket times out while receiving data.
             socket.error: If an error occurs while receiving data.
         """
+
         try:
             data = self.socket.recv(bytes)
             if not data:
@@ -131,6 +144,14 @@ class Surveyor:
         except socket.error as e:
             print(f"Error receiving data - {e}")
             raise
+
+    def _receive_and_update_thread(self):
+        while self._parallel_update:
+            message = self.receive()
+            updated_state = hlp.process_surveyor_message(message)
+            self._state.update(updated_state)
+
+
 
     def set_standby_mode(self):
         msg = "PSEAC,L,0,0,0,"
@@ -277,6 +298,9 @@ class Surveyor:
             dist = geodesic(waypoint, self.get_gps_coordinates()).meters
             self.set_waypoint_mode()
 
+    def get_state(self):
+        return self._state
+
     def get_control_mode(self):
         """
         Get control mode data from the Surveyor connection object.
@@ -284,9 +308,10 @@ class Surveyor:
         Returns:
             Control mode string.
         """
-        control_mode = None
-        while not control_mode:
-            control_mode = hlp.get_control_mode(self.receive())
+        # control_mode = None
+        # while not control_mode:
+        #     control_mode = hlp.get_control_mode(self.receive())
+        control_mode = self._state.get('Control Mode', 'Unknown')
 
         return control_mode
     
@@ -297,136 +322,39 @@ class Surveyor:
         Returns:
             Tuple containing GPS coordinates.
         """
-        coordinates = None
-        gga_message = None
-        while (coordinates == None) or (gga_message == None):
-            gga_message = hlp.get_gga(self.receive())
-            coordinates = hlp.get_coordinates(gga_message)
+        # coordinates = None
+        # gga_message = None
+        # while (coordinates == None) or (gga_message == None):
+        #     gga_message = hlp.get_gga(self.receive())
+        #     coordinates = hlp.get_coordinates(gga_message)
 
-        return coordinates
+        return (self._state.get('Latitude', 0.0),
+                self._state.get('Longitude', 0.0))
+    
+    # def get_command_status(self):
+    #     control_mode = None
+    #     control_mode_mesagge = None
+    #     while (control_mode == None) or (control_mode_mesagge == None):
+    #         control_mode_mesagge = hlp.get_command_status_message(self.receive())
+    #         control_mode = hlp.get_command_status(control_mode_mesagge)
+
+    #     return control_mode
     
 
-    def get_attitude(self):
-        """
-        Get Attitude information from the Surveyor connection object.
+    # def get_attitude(self):
+    #     """
+    #     Get Attitude information from the Surveyor connection object.
 
-        Returns:
-            Tuple containing heading.
-        """
-        heading = None
-        attitude_message = None
-        while (heading == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            heading = hlp.get_heading(attitude_message)
+    #     Returns:
+    #         Tuple containing heading.
+    #     """
+    #     heading = None
+    #     attitude_message = None
+    #     while (heading == None) or (attitude_message == None):
+    #         attitude_message = hlp.get_attitude_message(self.receive())
+    #         attitude = hlp.get_attitude(attitude_message)
 
-        return heading
-
-    def get_pitch(self):
-        """
-        Get Pitch information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing pitch.
-        """
-        pitch = None
-        attitude_message = None
-        while (pitch == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            pitch = hlp.get_pitch(attitude_message)
-
-        return pitch
-
-    def get_roll(self):
-        """
-        Get roll information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing roll.
-        """
-        roll = None
-        attitude_message = None
-        while (roll == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            roll = hlp.get_roll(attitude_message)
-
-        return roll
-
-
-    def get_heave(self):
-        """
-        Get heave information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing heave.
-        """
-        heave = None
-        attitude_message = None
-        while (heave == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            heave = hlp.get_heave(attitude_message)
-
-        return heave
-
-    def get_accel_x(self):
-        """
-        Get accel_x information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing accel_x.
-        """
-        accel_x = None
-        attitude_message = None
-        while (accel_x == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            accel_x = hlp.get_accel_x(attitude_message)
-
-        return accel_x
-
-    def get_accel_y(self):
-        """
-        Get accel_y information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing accel_y.
-        """
-        accel_y = None
-        attitude_message = None
-        while (accel_y == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            accel_y = hlp.get_accel_x(attitude_message)
-
-        return accel_y
-
-
-    def get_accel_z(self):
-        """
-        Get accel_z information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing accel_z.
-        """
-        accel_z = None
-        attitude_message = None
-        while (accel_z == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            accel_z = hlp.get_accel_z(attitude_message)
-
-        return accel_z
-
-    def get_yaw_rate(self):
-        """
-        Get yaw_rate information from the Surveyor connection object.
-
-        Returns:
-            Tuple containing yaw_rate.
-        """
-        yaw_rate = None
-        attitude_message = None
-        while (yaw_rate == None) or (attitude_message == None):
-            attitude_message = hlp.get_attitude_message(self.receive())
-            yaw_rate = hlp.get_yaw_rate(attitude_message)
-
-        return yaw_rate
+    #     return attitude
     
     def get_exo2_data(self):
         """
@@ -437,13 +365,7 @@ class Surveyor:
         """
         return self.exo2.get_exo2_data()
     
-    def get_current_date_and_time(self):
-        now = datetime.now()  # Get the current date and time
-        date_str = now.strftime("%Y%m%d")  # Format date as YYYY-MM-DD
-        time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
-        return [int(date_str), int(time_str)]
-    
-    def get_data(self, keys=['coordinates', 'time', 'exo2_data']):
+    def get_data(self, keys=['state', 'exo2']):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
@@ -457,32 +379,15 @@ class Surveyor:
         # Must return either a list of values or a dictionary paired by name : value.
         # In the case it returns a list, data_labels dict has to be updated with a list of names
         getter_functions = {
-            'exo2_data': self.get_exo2_data, # Dictionary with Exo2 sonde data
-            'coordinates': self.get_gps_coordinates,# List with ["Latitude", "Longitude"]
-            'heading': self.get_attitude, # List with ["Heading (degrees)"]
-            'pitch': self.get_pitch, # List with ["Pitch (degrees)"]
-            'roll': self.get_roll, # List with ["Roll (degrees)"]
-            'heave': self.get_heave, # List with ["Heave"]
-            'accel_x': self.get_accel_x, # List with ["Accel_X Forward (G)"]
-            'accel_y': self.get_accel_y, # List with ["Accel_Y Starboard (G)"]
-            'accel_z': self.get_accel_z, # List with ["Accel_Z Down (G)"]
-            'yaw_rate': self.get_yaw_rate, # List with ["Yaw Rate (deg/s)"]
-            'control_mode': self.get_control_mode, # List with ["Control mode"]
-            'time' : self.get_current_date_and_time # List with ['Local Time (YYMMDD)', 'Local Time (HHMMSS)']
+            'exo2': self.get_exo2_data, # Dictionary with Exo2 sonde data
+            'state': self.get_state,
+            'camera': self.get_image,
+            'lidar' : self.get_lidar_data
         }
         data_labels = {
-            'exo2_data' : ["date", "time", "odo (%sat)", "odo (mg/l)", "temp (c)", "cond (us/cm)", "salinity (ppt)", "pressure (psia)", "depth (m)"],
-            'coordinates' : ["Latitude", "Longitude"],
-            'heading' : ["Heading (degrees)"],
-            'pitch' : ["Pitch (degrees)"],
-            'roll' : ["Roll (degrees)"],
-            'heave' : ["Heave"],
-            'accel_x' : ["Accel_X Forward (G)"],
-            'accel_y' : ["Accel_Y Starboard (G)"],
-            'accel_z' : ["Accel_Z Down (G)"],
-            'yaw_rate' : ["Yaw Rate (deg/s)"],
-            'control_mode' : ["Control mode"],
-            'time' : ['Local Time (YYMMDD)', 'Local Time (HHMMSS)']}
+            'camera' : ['Image ret', 'Image'],
+            'lidar': ['Distances', 'Angles']
+        }
 
         # Initialize a list to store retrieved data
         data_dict = {}
@@ -508,14 +413,15 @@ class Surveyor:
         """
         return self.camera.get_image()
     
-    def get_lidar_measurements(self):
+    def get_lidar_data(self):
         """
         Retrieve the lidar measurements.
 
         Returns:
-            list: A 360 list containing the lidar measurements (one per degree) im meters or None if the data was not correclty fetched.
+            tuple: A 360 list containing the lidar measurements 
+                and a list with their corresponding angles [0-360] degrees.
         """
-        return self.lidar.get_lidar_measurements()
+        return self.lidar.get_data()
 
     
 

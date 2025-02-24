@@ -13,10 +13,13 @@ import csv
 import datetime
 import math
 import os
+
 from geopy.distance import geodesic
 import pynmea2
 import pandas as pd
+from . import logger, config
 
+HELPER_LOGGER = logger.create_logger(name='Helper Logger', log_level=config.LOGGING_LEVEL, log_file='')
 
 def create_grad_eval_coordinates(lat, lon, side_length):
     """
@@ -111,7 +114,183 @@ def get_attitude_message(message):
         return attitude
     return None
 
-CONTROL_MODE_DICT = {
+def get_command_status_message(message):
+    """Extract the PSEAD message."""
+    control_mode_message = get_message_by_prefix(message, '$PSEAD')
+    if control_mode_message:
+        return control_mode_message
+    return None
+
+# def get_control_mode(message):
+#     """Extract the PSEAD message and determine the control mode."""
+#     psead = get_message_by_prefix(message, '$PSEAD')
+
+#     if not psead:
+#         return None
+    
+#     psead = psead.split(',')
+#     code = psead[1]
+#     return CONTROL_MODE_DICT.get(code, 'Unknown')
+
+def get_coordinates(gga_message):
+    global HELPER_LOGGER
+    """
+    Extract latitude and longitude coordinates from an NMEA GGA message.
+
+    Args:
+        gga_message (str): The NMEA GGA message string.
+
+    Returns:
+        tuple: A tuple containing the latitude and longitude as floats, or None if the message cannot be parsed.
+    """
+    if not gga_message:
+        HELPER_LOGGER.warning("Received an empty or None GGA message.")
+        return None
+
+    HELPER_LOGGER.info("Parsing GGA message: %s", gga_message)
+
+    try:
+        # Parse the NMEA GGA message
+        gga = pynmea2.parse(gga_message)
+
+        # Extract latitude and longitude if valid
+        if gga.latitude != 0.0 and gga.longitude != 0.0:
+            HELPER_LOGGER.info("Successfully parsed coordinates: Latitude = %f, Longitude = %f", gga.latitude, gga.longitude)
+        else:
+            HELPER_LOGGER.warning("Parsed GGA message contains invalid coordinates: Latitude = %f, Longitude = %f", gga.latitude, gga.longitude)
+        return {'Latitude' : gga.latitude, 'Longitude' : gga.longitude}
+
+    except pynmea2.ParseError as e:
+        HELPER_LOGGER.error("Failed to parse GGA message: %s, Error: %s", gga_message, e)
+    except (ValueError, TypeError) as e:
+        HELPER_LOGGER.error("Error processing GGA message: %s, Error: %s", gga_message, e)
+
+    # If any exception occurs or the message cannot be parsed, return {}
+    HELPER_LOGGER.error("Failed to extract valid coordinates from GGA message.")
+    return {}
+
+def process_propietary_message(propietary_message, value_names, process_fun):
+    """
+    Process the propietary message and convert it into a dictionary with corresponding values.
+
+    Args:
+        propietary_message (str): The propietary message to be parsed.
+        value_names (list): The list of value names to map to the message parts.
+
+    Returns:
+        dict: A dictionary mapping the value names to the corresponding parsed values.
+    """
+    if not propietary_message:
+        HELPER_LOGGER.warning("Received empty or None propietary message.")
+        return {}
+
+    HELPER_LOGGER.info("Receiving propietary message: %s", propietary_message)
+
+    # Split the message into parts and remove the first and last item (e.g. '$PESAA' and checksum)
+    try:
+        message_parts = propietary_message.split(',')[1:]  # Remove the first part ('$PESAA')
+        last_element = message_parts.pop(-1).split('*')[0]  # Remove the last part (checksum)
+        message_parts.append(last_element)
+    except Exception as e:
+        HELPER_LOGGER.error("Error processing propietary message: %s", e)
+        return {}
+
+    # Convert the message parts to floats, replacing empty values with 0.0
+    try:
+        message_parts = [process_fun(element) for element in message_parts]
+    except ValueError as e:
+        HELPER_LOGGER.error("Error converting message parts to floats: %s", e)
+        return {}
+
+    # Return the result as a dictionary, mapping names to values
+    return {name: value for name, value in zip(value_names, message_parts)}
+
+def get_attitude(attitude_message):
+    
+    """
+    Parses an attitude message string and returns a dictionary of corresponding attitude values.
+
+
+    Parameters:
+        attitude_message (str): A comma-separated string representing attitude data. It may contain
+                                 values like pitch, roll, heading, etc. The string should include the
+                                 protocol header ('$PESAA') and a checksum (e.g., '*7F') at the end,
+                                 which will be discarded.
+
+    Returns:
+        dict: A dictionary where the keys are attitude names (e.g., 'Pitch', 'Roll', 'Heading') and
+              the values are the corresponding numerical values parsed from the attitude message. If
+              the input message is invalid or empty, an empty dictionary is returned.
+    
+    Example:
+        If attitude_message is '$PESAA,12.34,56.78,-90.12,34.56,18.0,0.5,-0.2,0.8,1.5*7F', 
+        the function will return:
+        {
+            'Pitch': 12.34,
+            'Roll': 56.78,
+            'Heading': -90.12,
+            'Heave': 34.56,
+            'Temp': 18.0,
+            'Acc_x': 0.5,
+            'Acc_y': -0.2,
+            'Acc_z': 0.8,
+            'Yaw_rate': 1.5
+        }
+    """
+    result = process_propietary_message(attitude_message, get_attitude.value_names, get_attitude.process_fun)
+    return result
+
+get_attitude.value_names = [
+    "Pitch [°]",
+    "Roll [°]",
+    "Heading [° Magnetic]",
+    "Heave",
+    "Temperature in electronics box [°C]",
+    "Acceleration x, forward [G]",
+    "Acceleration y, starboard [G]",
+    "Acceleration z, down [G]",
+    "Yaw rate [°/s]"
+]
+get_attitude.process_fun = lambda x: float(x) if x else 0.0
+
+def get_command_status(command_message):
+    """
+    Parses a command status message and returns a dictionary of corresponding status values.
+
+    Args:
+        command_message (str): A string representing the command status message. It should be a comma-separated
+                                message with each part corresponding to a specific value, and may contain a
+                                checksum at the end which will be discarded.
+
+    Returns:
+        dict: A dictionary where the keys are the command status names (e.g., 'Control Mode', 'Heading') 
+              and the values are the corresponding parsed values from the message. If the input message 
+              is invalid or empty, an empty dictionary is returned.
+
+    Example:
+        If command_message is '$PSEAA,1.5,T,2.5,0.5*7A', the function will return:
+        {
+            'Control Mode': 1.5,
+            'Heading, degrees Magnetic': 'Thruster',
+            'Thrust': 2.5,
+            'Thrust difference': 0.5
+        }
+
+    Notes:
+        - The function uses the `process_fun` lambda for processing numeric values and decoding command symbols.
+        - The `command_dictionary` is used to map symbols (e.g., 'T', 'C', 'G') to human-readable descriptions.
+
+    """
+    result = process_propietary_message(command_message, get_command_status.value_names, get_command_status.process_fun)
+    return result
+
+get_command_status.value_names = [
+    "Control Mode",
+    "Heading [° Magnetic]",
+    "Thrust [% Thrust]",
+    "Thrust difference [% Thrust]"
+]
+get_command_status.command_dictionary = {
         'L': 'Standby',
         'T': 'Thruster',
         'C': 'Heading',
@@ -127,252 +306,51 @@ CONTROL_MODE_DICT = {
         'F': 'File Download',
         '!': 'Boot Loader'
     }
-
-def get_control_mode(message):
-    """Extract the PSEAD message and determine the control mode."""
-    psead = get_message_by_prefix(message, '$PSEAD')
-
-    if not psead:
-        return None
+def _get_command_status_process_fun(x):
+    if not x:
+        return 0.0
+    try:
+        return float(x)
+    except:
+        return get_command_status.command_dictionary.get(x, "Unknown")
     
-    psead = psead.split(',')
-    code = psead[1]
-    return CONTROL_MODE_DICT.get(code, 'Unknown')
+get_command_status.process_fun = _get_command_status_process_fun
 
-def get_coordinates(gga_message):
+
+def get_date():
+        now = datetime.datetime.now()  # Get the current date and time
+        date_str = now.strftime("%Y%m%d")  # Format date as YYYY-MM-DD
+        time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
+        return {'Day': int(date_str), 'Time' : int(time_str)}
+
+def process_surveyor_message(message):
     """
-    Extract latitude and longitude coordinates from an NMEA GGA message.
-
+    Processes a surveyor message and extracts attributes based on line prefixes.
     Args:
-        gga_message (str): The NMEA GGA message string.
+        message (str): The surveyor message to be parsed, containing multiple lines.
 
     Returns:
-        tuple: A tuple containing the latitude and longitude as strings, or None if the message cannot be parsed.
+        dict: A dictionary of attributes extracted from the message.
+
     """
-    try:
-        # Parse the NMEA GGA message
-        gga = pynmea2.parse(gga_message)
+    global HELPER_LOGGER
+    messages = message.split('\r\n')
+    attribute_dict = get_date()
 
-        # Check if the parsed message is a valid GGA message
-        if isinstance(gga, pynmea2.GGA):
-            # Use the attributes provided by pynmea2
-            return gga.latitude, gga.longitude
+    for message_line in messages:
+        prefix = message_line[:6]
+        HELPER_LOGGER.debug(f'Processing message with prefix: {prefix}')
+        fun = process_surveyor_message.prefix_map.get(prefix, lambda x: {})
+        attribute_dict.update(fun(message_line))
+    
+    HELPER_LOGGER.debug(f'Attributes updated: {attribute_dict}')
+    return attribute_dict
 
-    except pynmea2.ParseError:
-        # Handle parsing errors from the pynmea2 library
-        pass
-
-    except ValueError:
-        # Handle value errors (e.g., invalid input string)
-        pass
-
-    except TypeError:
-        # Handle type errors (e.g., incorrect argument types)
-        pass
-
-    # If any exception occurs or the message cannot be parsed, return None
-    return None
-
-def get_heading(attitude_message):
-    """
-    Extract the heading value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The heading value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-
-        # Check if the message has at least four parts (assuming the heading is the fourth part)
-        if len(message_parts) >= 4:
-            # Convert the fourth part (heading) to a float
-            heading = float(message_parts[3])
-            return heading
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_pitch(attitude_message):
-    """
-    Extract the pitch value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The pitch value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-
-        # Check if the message has at least 2 parts (assuming the pitch is the second part)
-        if len(message_parts) >= 2:
-            # Convert the second part (pitch) to a float
-            pitch = float(message_parts[1])
-            return pitch
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_roll(attitude_message):
-    """
-    Extract the roll value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The roll value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-
-        # Check if the message has at least 3 parts (assuming the roll is the third part)
-        if len(message_parts) >= 3:
-            # Convert the third part (roll) to a float
-            roll = float(message_parts[2])
-            return roll
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_heave(attitude_message):
-    """
-    Extract the heave value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The heave value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-        
-        if len(message_parts) >= 5:
-            heave = float(message_parts[4])
-            return heave
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_accel_x(attitude_message):
-    """
-    Extract the accel_x value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The accel_x value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-        
-        if len(message_parts) >= 7:
-            accel_x = float(message_parts[6])
-            return accel_x
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_accel_y(attitude_message):
-    """
-    Extract the accel_y value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The accel_y value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-        
-        if len(message_parts) >= 8:
-            accel_y = float(message_parts[7])
-            return accel_y
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-def get_accel_z(attitude_message):
-    """
-    Extract the accel_z value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The accel_z value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-        
-        if len(message_parts) >= 9:
-            accel_z = float(message_parts[8])
-            return accel_z
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-
-def get_yaw_rate(attitude_message):
-    """
-    Extract the yaw_rate value from an attitude message string.
-
-    Args:
-        attitude_message (str): The attitude message string, expected to be in a comma-separated format.
-
-    Returns:
-        float: The yaw_rate value extracted from the message, or None if the message cannot be parsed.
-    """
-    try:
-        # Split the attitude message by commas
-        message_parts = attitude_message.split(',')
-        
-        if len(message_parts) >= 10:
-            yaw_rate = float(message_parts[9])
-            return yaw_rate
-        else:
-            print("Invalid message format")
-
-    except:
-        # If any exception occurs or the message cannot be parsed, return None
-        return None
-
-
+process_surveyor_message.prefix_map = {
+    '$GPGGA': get_coordinates,
+    '$PSEAA': get_attitude,
+    '$PSEAD': get_command_status
+}
 
 def compute_nmea_checksum(message):
     """

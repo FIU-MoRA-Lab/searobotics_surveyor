@@ -23,6 +23,7 @@ class LidarClient:
         self.server_ip = server_ip
         self.server_port = server_port
         self.server_url = f"http://{server_ip}:{server_port}/data"
+        self._angles = list(range(0, 360))
 
     def get_data(self):
         """
@@ -35,7 +36,7 @@ class LidarClient:
         response = requests.get(self.server_url)
 
         if response.status_code == 200:
-            return response.json()
+            return response.json(), self._angles
         else:
             print(f"Failed to get RPLidar data: {response.status_code}")
             return None

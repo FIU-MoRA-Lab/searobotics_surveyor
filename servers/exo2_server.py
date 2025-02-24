@@ -4,6 +4,10 @@ import sys
 import serial
 import argparse
 import re
+import platform
+
+OS_TYPE = platform.system()
+
 
 class Exo2Server(http.server.SimpleHTTPRequestHandler):
     com_port = "COM4"  # Default values
@@ -115,7 +119,8 @@ if __name__ == "__main__":
     # Add arguments
     parser = argparse.ArgumentParser(description='Server script for serial communication.')
     parser.add_argument('--port', type=int, default=5000, help='Port number (default: 5000).')
-    parser.add_argument('--com_port', type=str, default='COM4', help='COM port (default: COM4).')
+    parser.add_argument('--com_port', type=str, default='COM4' if OS_TYPE == 'Windows' else '/dev/ttyUSB1'
+                        , help='COM port (default: COM4 for Windows ttyUSB1 for linux).')
     parser.add_argument('--baud_rate', type=int, default=9600, help='Baud rate (default: 9600).')
     parser.add_argument('--timeout', type=float, default=0.1, help='Timeout in seconds (default: 0.1).')
 
