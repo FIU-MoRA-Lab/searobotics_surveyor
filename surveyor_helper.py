@@ -629,7 +629,7 @@ def save(data, post_fix=""):
         append_to_csv(data.values(), data.keys(), post_fix=post_fix)
 
 
-def process_gga_and_save_data(surveyor_connection, data_keys = ['state', 'exo2'], post_fix=""):
+def process_gga_and_save_data(surveyor_connection, data_keys=['state', 'exo2'], post_fix="", delay=1.0):
     """
     Retrieve and process GGA and Exo2 data, then append it to a CSV file.
 
@@ -646,7 +646,7 @@ def process_gga_and_save_data(surveyor_connection, data_keys = ['state', 'exo2']
     if time.time() - process_gga_and_save_data.last_save_time < delay:
         time.sleep(delay - time.time() + process_gga_and_save_data.last_save_time)
     process_gga_and_save_data.last_save_time = time.time()
-    
+
     save(surveyor_data, post_fix)
     return surveyor_data
 
