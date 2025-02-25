@@ -1,5 +1,5 @@
 import logging
-from . import config
+from .helpers import config
 
 def create_logger(name, log_level=logging.DEBUG, log_file=None):
     """

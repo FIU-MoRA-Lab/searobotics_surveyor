@@ -1,3 +1,4 @@
-from . import surveyor_helper, clients
+import helpers
+from . import clients
 from .surveyor import Surveyor
 
