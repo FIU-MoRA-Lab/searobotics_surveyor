@@ -241,15 +241,15 @@ def get_attitude(attitude_message):
     return result
 
 get_attitude.value_names = [
-    "Pitch [°]",
-    "Roll [°]",
-    "Heading [° Magnetic]",
+    "Pitch (degrees)",
+    "Roll (degrees)",
+    "Heading (degrees Magnetic)",
     "Heave",
-    "Temperature in electronics box [°C]",
-    "Acceleration x, forward [G]",
-    "Acceleration y, starboard [G]",
-    "Acceleration z, down [G]",
-    "Yaw rate [°/s]"
+    "Temperature in electronics box (degrees C)",
+    "Acceleration x, forward (G)",
+    "Acceleration y, starboard (G)",
+    "Acceleration z, down (G)",
+    "Yaw rate [degrees/s]"
 ]
 get_attitude.process_fun = lambda x: float(x) if x else 0.0
 
@@ -286,9 +286,9 @@ def get_command_status(command_message):
 
 get_command_status.value_names = [
     "Control Mode",
-    "Heading [° Magnetic]",
-    "Thrust [% Thrust]",
-    "Thrust difference [% Thrust]"
+    "Heading (degrees Magnetic)",
+    "Thrust (% Thrust)",
+    "Thrust difference (% Thrust)"
 ]
 get_command_status.command_dictionary = {
         'L': 'Standby',
