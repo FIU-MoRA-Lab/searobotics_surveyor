@@ -4,6 +4,11 @@ from . import helpers as hlp
 from . import clients
 from geopy.distance import geodesic
 import threading
+import os
+import csv
+import json
+import numpy as np
+import h5py
 
 
 DEFAULT_CONFIGS = {
@@ -16,7 +21,8 @@ class Surveyor:
     def __init__(self, 
              host='192.168.0.50', port=8003,
              sensors_to_use=['exo2', 'camera', 'lidar'], 
-             sensors_config={'exo2': {}, 'camera': {}, 'lidar' :{}}):
+             sensors_config={'exo2': {}, 'camera': {}, 'lidar' :{}},
+             record = True):
     
         """
         Initialize the Surveyor object with server connection details and sensor configurations.
@@ -66,6 +72,7 @@ class Surveyor:
                                             DEFAULT_CONFIGS['lidar']['lidar_server_port'])
             
         self._parallel_update = True
+        self.record = record
 
 
     def __enter__(self):
@@ -86,6 +93,14 @@ class Surveyor:
             self._receive_and_update_thread = threading.Thread(target=self._receive_and_update_thread)
             self._receive_and_update_thread.daemon = True
             self._receive_and_update_thread.start()
+            while not self.get_state():
+                time.sleep(0.1)
+            if self.record:
+                print('Initializing record thread')
+                self._recording_thread = threading.Thread(target=self._save_data_continuously)
+                self._recording_thread.daemon = True
+                self._recording_thread.start()
+
         except socket.error as e:
             print(f"Error connecting to {self.host}:{self.port} - {e}")
         return self
@@ -149,6 +164,81 @@ class Surveyor:
             updated_state = hlp.process_surveyor_message(message)
             self._state.update(updated_state)
 
+    def _save_data_continuously(self):
+        # Create the 'records' folder in the current working directory (if it doesn't exist)
+        records_dir = os.path.join(os.getcwd(), 'records')
+        if not os.path.exists(records_dir):
+            os.makedirs(records_dir)
+
+        # File paths for saving data inside the 'records' folder
+        image_data_path = os.path.join(records_dir, 'image_data.h5')  # Using HDF5 for image data
+        state_data_path = os.path.join(records_dir, 'state_data.csv')
+        lidar_data_path = os.path.join(records_dir, 'lidar_data.json')
+
+        # Get image shape from a sample image
+        shape = self.get_image()[1].shape
+        
+        # Open or create the HDF5 file for storing images
+        with h5py.File(image_data_path, 'a') as f:
+            # Create a dataset for images if it doesn't exist
+            if 'images' not in f:
+                # Create an empty dataset with an initial shape of (0, *shape)
+                dataset = f.create_dataset('images', (0, *shape), maxshape=(None, *shape),
+                                        dtype=np.uint8, chunks=(1, *shape), compression="gzip", compression_opts=4)
+            else:
+                dataset = f['images']
+
+            images_received = 0  # Counter to track the number of images
+
+            try:
+                while self.record:
+                    # Get the current state and data
+                    state = self.get_state()
+                    lidar_data = None
+                    image_data = None
+
+                    if hasattr(self, 'exo2'):
+                        exo_data = self.get_exo2_data()
+                        state.update(exo_data)
+
+                    if hasattr(self, 'lidar'):
+                        distances, angles = self.get_lidar_data()
+                        lidar_data = {"distances": distances, "angles": angles}
+
+                    if hasattr(self, 'camera'):
+                        ret, image = self.get_image()
+                        if ret:
+                            image_data = image
+
+                    # Save state data to CSV
+                    with open(state_data_path, mode='a', newline='') as csv_file:
+                        print('saving', state)
+                        fieldnames = list(state.keys())
+                        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                        if csv_file.tell() == 0:
+                            writer.writeheader()
+                        writer.writerow(state)
+
+                    # Save lidar data to JSON
+                    if lidar_data:
+                        with open(lidar_data_path, mode='a') as json_file:
+                            json_file.write(json.dumps(lidar_data) + '\n')
+
+                    # Append image to the HDF5 dataset
+                    if image_data is not None:
+                        # Resize the dataset to accommodate a new image
+                        dataset.resize(dataset.shape[0] + 1, axis=0)  # Increase the size by 1 along the first dimension
+                        dataset[-1] = image_data  # Append the new image to the dataset
+                        images_received += 1
+
+                        # Manually flush the data to disk after adding an image
+                        dataset.flush()
+
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("Process interrupted. Flushing data to disk...")
+                dataset.flush()  # Ensure data is saved to disk on exit
+            
 
 
     def set_standby_mode(self):

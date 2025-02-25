@@ -2,8 +2,9 @@ import csv
 import datetime
 import os
 import time
-from . import config, logger
 import pandas as pd
+from . import config, logger
+
 
 def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
     """
