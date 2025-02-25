@@ -145,10 +145,11 @@ class Exo2Client:
         Returns:
             str: The parameters received from the server, or None if an error occurred.
         """
-        param_str = self.get_data_from_command('para')
+        param_str = None
         while not param_str:
             # Keep requesting data until a non-empty string (other than "#") is received
             param_str = self.get_data_from_command('para')
+            print('param_str',param_str)
             try:
                 param_list = list(map(int, param_str.split()))
             except:
