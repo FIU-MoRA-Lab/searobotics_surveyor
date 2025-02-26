@@ -9,6 +9,7 @@ import csv
 import json
 import numpy as np
 import h5py
+from datetime import datetime
 
 
 DEFAULT_CONFIGS = {
@@ -166,7 +167,9 @@ class Surveyor:
 
     def _save_data_continuously(self):
         # Create the 'records' folder in the current working directory (if it doesn't exist)
-        records_dir = os.path.join(os.getcwd(), 'records')
+        folder_name = "records_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        records_dir = os.path.join(os.getcwd(), folder_name)
         if not os.path.exists(records_dir):
             os.makedirs(records_dir)
 
