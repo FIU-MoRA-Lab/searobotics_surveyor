@@ -220,7 +220,7 @@ class Surveyor:
 
                     # Save state data to CSV
                     with open(state_data_path, mode='a', newline='') as csv_file:
-                        print('saving', state)
+                        self._logger.debug(f'Saving state:\n{state}')
                         fieldnames = list(state.keys())
                         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                         if csv_file.tell() == 0:
@@ -326,7 +326,7 @@ class Surveyor:
             case "End File Download":
                 self.end_file_download_mode()
             case _:
-                print("Control mode not implemented")
+                self._logger.error("Control mode not implemented")
 
 
     def send_waypoints(self, waypoints, erp, throttle):

@@ -15,8 +15,6 @@ from geopy.distance import geodesic
 import pynmea2
 from .logger import HELPER_LOGGER
 
-
-
 def are_coordinates_close(coord1, coord2, tolerance_meters=2):
     """
     Check if two coordinates are close enough based on a tolerance in meters.
