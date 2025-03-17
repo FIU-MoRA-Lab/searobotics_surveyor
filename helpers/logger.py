@@ -36,12 +36,12 @@ def create_logger(name, log_level=logging.DEBUG, log_file=None):
     
     return logger
 
-HELPER_LOGGER = create_logger(name='Helper Logger', log_level=config.LOGGING_LEVEL, log_file='')
+HELPER_LOGGER = create_logger(name='Helper Logger', log_level=logging.DEBUG, log_file='')
 
 # Usage Example
 if __name__ == "__main__":
     # Create a logger instance
-    my_logger = create_logger('MyLogger', log_level=config.LOGGING_LEVEL, log_file='logs.log')
+    my_logger = create_logger('MyLogger', log_level=logging.DEBUG, log_file='logs.log')
 
     # Log messages with different severity levels
     my_logger.debug('This is a debug message')
