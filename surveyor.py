@@ -96,8 +96,9 @@ class Surveyor:
             self._receive_and_update_thread.start()
             while not self.get_state():
                 time.sleep(0.1)
+            print('Update thread online!')
             if self.record:
-                print('Initializing record thread')
+                print('Initializing record thread...')
                 self._recording_thread = threading.Thread(target=self._save_data_continuously)
                 self._recording_thread.daemon = True
                 self._recording_thread.start()

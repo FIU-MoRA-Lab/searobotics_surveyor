@@ -18,11 +18,12 @@ def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
     # Get today's date in the "YYYYMMDD" format
     today_date = datetime.date.today().strftime("%Y%m%d")
 
-    # Get the parent directory of the current script
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    # Get the parent's parent directory of the current script
+    grandparent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # print(f'saving at {grandparent_dir}')
 
     # Create the "out" directory if it doesn't exist
-    out_dir = os.path.join(parent_dir, "out")
+    out_dir = os.path.join(grandparent_dir, "out")
     os.makedirs(out_dir, exist_ok=True)
 
     # Define the CSV file path using today's date
