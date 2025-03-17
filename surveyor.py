@@ -93,21 +93,23 @@ class Surveyor:
         try:
             self.socket.settimeout(5)  # Set a timeout for the connection
             self.socket.connect((self.host, self.port))
-            print('Surveyor connected!')
+            self._logger.info('Surveyor connected!')
             self._receive_and_update_thread = threading.Thread(target=self._receive_and_update_thread)
             self._receive_and_update_thread.daemon = True
             self._receive_and_update_thread.start()
             while not self.get_state():
                 time.sleep(0.1)
-            print('Update thread online!')
+            self._logger.info('Update thread online!')
             if self.record:
-                print('Initializing record thread...')
+                self._logger.info('Initializing record thread...')
                 self._recording_thread = threading.Thread(target=self._save_data_continuously)
                 self._recording_thread.daemon = True
                 self._recording_thread.start()
+            else:
+                self._logger.info('Not recoding sensors...')
 
         except socket.error as e:
-            print(f"Error connecting to {self.host}:{self.port} - {e}")
+            self._logger.error(f"Error connecting to {self.host}:{self.port} - {e}")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -133,7 +135,7 @@ class Surveyor:
             self.socket.send(msg.encode())
             time.sleep(0.005)
         except socket.error as e:
-            print(f"Error sending message - {e}")
+            self._logger.error(f"Error sending message - {e}")
 
     def receive(self, bytes=2048):
         """
@@ -157,10 +159,10 @@ class Surveyor:
                 raise ConnectionError("Connection closed by the server.")
             return data.decode('utf-8')
         except socket.timeout:
-            print("Socket timeout.")
+            self._logger.error("Socket timeout.")
             raise
         except socket.error as e:
-            print(f"Error receiving data - {e}")
+            self._logger.error(f"Error receiving data - {e}")
             raise
 
     def _receive_and_update_thread(self):
@@ -243,7 +245,7 @@ class Surveyor:
 
                     time.sleep(1)
             except KeyboardInterrupt:
-                print("Process interrupted. Flushing data to disk...")
+                self._logger.info("Process interrupted. Flushing data to disk...")
                 dataset.flush()  # Ensure data is saved to disk on exit
             
 
@@ -373,7 +375,7 @@ class Surveyor:
             # End file download mode
             self.end_file_download_mode()
         except socket.error as e:
-            print(f"Error sending waypoints - {e}")
+            self._logger.error(f"Error sending waypoints - {e}")
             raise
 
     def go_to_waypoint(self, waypoint, erp, throttle, tolerance_meters = 2.0):
@@ -417,40 +419,10 @@ class Surveyor:
         Returns:
             Tuple containing GPS coordinates.
         """
-        # coordinates = None
-        # gga_message = None
-        # while (coordinates == None) or (gga_message == None):
-        #     gga_message = hlp.get_gga(self.receive())
-        #     coordinates = hlp.get_coordinates(gga_message)
 
         return (self._state.get('Latitude', 0.0),
                 self._state.get('Longitude', 0.0))
-    
-    # def get_command_status(self):
-    #     control_mode = None
-    #     control_mode_mesagge = None
-    #     while (control_mode == None) or (control_mode_mesagge == None):
-    #         control_mode_mesagge = hlp.get_command_status_message(self.receive())
-    #         control_mode = hlp.get_command_status(control_mode_mesagge)
 
-    #     return control_mode
-    
-
-    # def get_attitude(self):
-    #     """
-    #     Get Attitude information from the Surveyor connection object.
-
-    #     Returns:
-    #         Tuple containing heading.
-    #     """
-    #     heading = None
-    #     attitude_message = None
-    #     while (heading == None) or (attitude_message == None):
-    #         attitude_message = hlp.get_attitude_message(self.receive())
-    #         attitude = hlp.get_attitude(attitude_message)
-
-    #     return attitude
-    
     def get_exo2_data(self):
         """
         Retrieve data from the EXO2 sensor.
@@ -458,6 +430,7 @@ class Surveyor:
         Returns:
            list: A list of float values representing the data from the Exo2 sensor.
         """
+        
         return self.exo2.get_exo2_data()
     
     def get_data(self, keys=['state', 'exo2']):
