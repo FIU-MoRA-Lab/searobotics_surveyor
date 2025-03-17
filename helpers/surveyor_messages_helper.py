@@ -12,11 +12,10 @@ thereby facilitating the efficient management of navigation and surveying tasks 
 import datetime
 import os
 from geopy.distance import geodesic
-from . import config, logger
 import pynmea2
+from .logger import HELPER_LOGGER
 
 
-HELPER_LOGGER = logger.create_logger(name='Helper Logger', log_level=config.LOGGING_LEVEL, log_file='')
 
 def are_coordinates_close(coord1, coord2, tolerance_meters=2):
     """

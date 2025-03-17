@@ -1,5 +1,4 @@
 import logging
-from . import config
 
 def create_logger(name, log_level=logging.DEBUG, log_file=None):
     """
@@ -36,6 +35,8 @@ def create_logger(name, log_level=logging.DEBUG, log_file=None):
         logger.addHandler(file_handler)
     
     return logger
+
+HELPER_LOGGER = create_logger(name='Helper Logger', log_level=config.LOGGING_LEVEL, log_file='')
 
 # Usage Example
 if __name__ == "__main__":

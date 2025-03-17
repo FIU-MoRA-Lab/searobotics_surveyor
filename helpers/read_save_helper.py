@@ -3,7 +3,7 @@ import datetime
 import os
 import time
 import pandas as pd
-from . import config, logger
+from .logger import HELPER_LOGGER
 
 
 def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
@@ -19,8 +19,8 @@ def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
     today_date = datetime.date.today().strftime("%Y%m%d")
 
     # Get the parent's parent directory of the current script
-    grandparent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # print(f'saving at {grandparent_dir}')
+    grandparent_dir =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    print(f'saving at {grandparent_dir}')
 
     # Create the "out" directory if it doesn't exist
     out_dir = os.path.join(grandparent_dir, "out")

@@ -1,5 +1,5 @@
-from . import config, logger
 import pandas as pd
+from .logger import HELPER_LOGGER
 
 def compute_nmea_checksum(message):
     """
