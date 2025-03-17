@@ -12,13 +12,12 @@ import h5py
 from datetime import datetime
 import logging
 
-DEFAULT_CONFIGS = {
+class Surveyor:
+    sensors_config = {
             'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
             'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001},
             'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
         }
-
-class Surveyor:
     def __init__(self, 
              host='192.168.0.50', port=8003,
              sensors_to_use=['exo2', 'camera', 'lidar'], 
@@ -58,20 +57,20 @@ class Surveyor:
         # Apply default configurations if not provided
         for sensor in sensors_to_use:
             if sensors_config[sensor]:
-                DEFAULT_CONFIGS[sensor].update(sensors_config[sensor])
+                self.sensors_config[sensor].update(sensors_config[sensor])
         
         # Initialize sensors based on sensors_to_use
         if 'exo2' in sensors_to_use:    
-            self.exo2 = clients.Exo2Client(DEFAULT_CONFIGS['exo2']['exo2_server_ip'], 
-                                        DEFAULT_CONFIGS['exo2']['exo2_server_port'])
+            self.exo2 = clients.Exo2Client(self.sensors_config['exo2']['exo2_server_ip'], 
+                                        self.sensors_config['exo2']['exo2_server_port'])
         
         if 'camera' in sensors_to_use:     
-            self.camera = clients.CameraClient(DEFAULT_CONFIGS['camera']['camera_server_ip'], 
-                                            DEFAULT_CONFIGS['camera']['camera_server_port'])
+            self.camera = clients.CameraClient(self.sensors_config['camera']['camera_server_ip'], 
+                                            self.sensors_config['camera']['camera_server_port'])
             
         if 'lidar' in sensors_to_use:     
-            self.lidar = clients.LidarClient(DEFAULT_CONFIGS['lidar']['lidar_server_ip'], 
-                                            DEFAULT_CONFIGS['lidar']['lidar_server_port'])
+            self.lidar = clients.LidarClient(self.sensors_config['lidar']['lidar_server_ip'], 
+                                            self.sensors_config['lidar']['lidar_server_port'])
             
         self._parallel_update = True
         self.record = record
@@ -430,7 +429,7 @@ class Surveyor:
         Returns:
            list: A list of float values representing the data from the Exo2 sensor.
         """
-        
+
         return self.exo2.get_exo2_data()
     
     def get_data(self, keys=['state', 'exo2']):
