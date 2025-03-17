@@ -257,6 +257,7 @@ class Surveyor:
     # negative means backwards/counter_clockwise
 
     def set_thruster_mode(self, thrust, thrust_diff, delay = 0.05): # Delay to ensure that the motors spin?
+        thrust, thrust_diff = np.clip([thrust, thrust_diff], -70, 70)
         msg = f"PSEAC,T,0,{int(thrust)},{int(thrust_diff)},"
         self.send(msg)
         time.sleep(delay)
@@ -267,6 +268,7 @@ class Surveyor:
 
     # degrees has to be an integer between 0 and 360
     def set_heading_mode(self, thrust, degrees):
+        thrust, degrees = np.clip([thrust, degrees], 0, [0, 360])
         msg = f"PSEAC,C,{int(degrees)},{int(thrust)},,"
         self.send(msg)
 
@@ -279,7 +281,9 @@ class Surveyor:
         self.send(msg)
 
     def start_file_download_mode(self, num_lines):
-        msg = "PSEAC,F," + str(num_lines) + ",000,000,"
+        if num_lines != int(num_lines):
+            self._logger.error('Non integer number of lines. Converting to integer...')
+        msg = "PSEAC,F," + str(int(num_lines)) + ",000,000,"
         self.send(msg)
         time.sleep(0.1)
 
@@ -344,8 +348,10 @@ class Surveyor:
         """
         # Create a DataFrame from the list of waypoints and ERP message
         df = hlp.create_waypoint_messages_df_from_list(waypoints, erp)
-
+        throttle = int(np.clip(throttle, 0, 70)) # Ensure proper throttle format
+        
         if df.empty:
+            self._logger.error("Waypoints DataFrame is empty.")
             raise ValueError("DataFrame is empty.")
 
         # Calculate the total number of lines to send: waypoints + ERP + PSEAR command
@@ -387,8 +393,10 @@ class Surveyor:
             throttle (int): The desired throttle value for the boat.
             tolerance_meters (float): The tolerance distance for the waypoint in meters. If the waypoint is within the margin, it will be loaded only once.
         """
+        
         self.send_waypoints([waypoint], erp, throttle)
         dist = geodesic(waypoint, self.get_gps_coordinates()).meters
+        self._logger.info(f'Headding to waypoint {waypoint} located at {dist:.2f} meters with throttle {throttle}')
         self.set_waypoint_mode()
         while self.get_control_mode() != 'Waypoint' and dist > tolerance_meters:
             dist = geodesic(waypoint, self.get_gps_coordinates()).meters
