@@ -20,7 +20,7 @@ def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
 
     # Get the parent's parent directory of the current script
     grandparent_dir =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    print(f'saving at {grandparent_dir}')
+    HELPER_LOGGER.debug(f'out folder at {grandparent_dir}')
 
     # Create the "out" directory if it doesn't exist
     out_dir = os.path.join(grandparent_dir, "out")
@@ -54,6 +54,9 @@ def save(data, post_fix=""):
     # If combined data is not empty, append to CSV
     if data:
         append_to_csv(data.values(), data.keys(), post_fix=post_fix)
+    else:
+        HELPER_LOGGER.error('No values to be appended to the CSV')
+
 
 
 def process_gga_and_save_data(surveyor_connection, data_keys=['state', 'exo2'], post_fix="", delay=1.0):
@@ -70,7 +73,7 @@ def process_gga_and_save_data(surveyor_connection, data_keys=['state', 'exo2'], 
     surveyor_data = surveyor_connection.get_data(data_keys)
 
     # Save the data to a CSV file
-    if time.time() - process_gga_and_save_data.last_save_time < delay:
+    if time.time() - process_gga_and_save_data.last_save_time < delay: #Apply delay to prevent same location
         time.sleep(delay - time.time() + process_gga_and_save_data.last_save_time)
     process_gga_and_save_data.last_save_time = time.time()
 
@@ -98,7 +101,7 @@ def read_csv_into_tuples(filepath):
         try:
             df = df[['latitude', 'longitude']]
         except KeyError:
-            print('Assuming first column to be Latitude and second to be Longitude')
+            HELPER_LOGGER.warning('Assuming first column to be Latitude and second to be Longitude')
             df = df.iloc[:, :2]        
     
     # Convert the DataFrame rows into tuples and return as a list

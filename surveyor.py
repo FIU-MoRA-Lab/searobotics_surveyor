@@ -10,7 +10,7 @@ import json
 import numpy as np
 import h5py
 from datetime import datetime
-
+import logging
 
 DEFAULT_CONFIGS = {
             'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
@@ -23,7 +23,8 @@ class Surveyor:
              host='192.168.0.50', port=8003,
              sensors_to_use=['exo2', 'camera', 'lidar'], 
              sensors_config={'exo2': {}, 'camera': {}, 'lidar' :{}},
-             record = True):
+             record = True,
+             logger_level=logging.DEBUG):
     
         """
         Initialize the Surveyor object with server connection details and sensor configurations.
@@ -74,6 +75,8 @@ class Surveyor:
             
         self._parallel_update = True
         self.record = record
+        hlp.HELPER_LOGGER.setLevel(level=logger_level)
+        self._logger = hlp.HELPER_LOGGER
 
 
     def __enter__(self):

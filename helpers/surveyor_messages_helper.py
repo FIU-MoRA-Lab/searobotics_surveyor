@@ -76,7 +76,7 @@ def get_coordinates(gga_message):
         HELPER_LOGGER.warning("Received an empty or None GGA message.")
         return None
 
-    HELPER_LOGGER.info("Parsing GGA message: %s", gga_message)
+    HELPER_LOGGER.debug("Parsing GGA message: %s", gga_message)
 
     try:
         # Parse the NMEA GGA message
@@ -84,7 +84,7 @@ def get_coordinates(gga_message):
 
         # Extract latitude and longitude if valid
         if gga.latitude != 0.0 and gga.longitude != 0.0:
-            HELPER_LOGGER.info("Successfully parsed coordinates: Latitude = %f, Longitude = %f", gga.latitude, gga.longitude)
+            HELPER_LOGGER.debug("Successfully parsed coordinates: Latitude = %f, Longitude = %f", gga.latitude, gga.longitude)
         else:
             HELPER_LOGGER.warning("Parsed GGA message contains invalid coordinates: Latitude = %f, Longitude = %f", gga.latitude, gga.longitude)
         return {'Latitude' : gga.latitude, 'Longitude' : gga.longitude}
@@ -95,7 +95,7 @@ def get_coordinates(gga_message):
         HELPER_LOGGER.error("Error processing GGA message: %s, Error: %s", gga_message, e)
 
     # If any exception occurs or the message cannot be parsed, return {}
-    HELPER_LOGGER.error("Failed to extract valid coordinates from GGA message.")
+    HELPER_LOGGER.error("Failed to extract valid coordinates from GGA message")
     return {}
 
 def process_propietary_message(propietary_message, value_names, process_fun):
@@ -113,7 +113,7 @@ def process_propietary_message(propietary_message, value_names, process_fun):
         HELPER_LOGGER.warning("Received empty or None propietary message.")
         return {}
 
-    HELPER_LOGGER.info("Receiving propietary message: %s", propietary_message)
+    HELPER_LOGGER.debug("Receiving propietary message: %s", propietary_message)
 
     # Split the message into parts and remove the first and last item (e.g. '$PESAA' and checksum)
     try:

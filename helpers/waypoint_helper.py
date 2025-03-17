@@ -115,11 +115,11 @@ def create_waypoint_messages_df(filename, erp_filename):
         # Load the CSV into a pandas DataFrame
         df = pd.read_csv(filename)
     except Exception as e:
-        print(f"Error loading waypoint CSV file: {e}")
+        HELPER_LOGGER.error(f"Error loading waypoint CSV file: {e}")
         return pd.DataFrame()
 
     if df.empty:
-        print("The waypoints DataFrame is empty.")
+        HELPER_LOGGER.error("The waypoints DataFrame is empty")
         return df
 
     try:
@@ -130,7 +130,7 @@ def create_waypoint_messages_df(filename, erp_filename):
         erp_df = erp_df.iloc[0:1]
 
     except Exception as e:
-        print(f"Error loading ERP CSV file: {e}")
+        HELPER_LOGGER.error(f"Error loading ERP CSV file: {e}")
         return pd.DataFrame()
     
     # Append ERP to the beginning of the DataFrame
@@ -172,10 +172,10 @@ def create_waypoint_messages_df_from_list(waypoints, erp):
 
     # Validate that the DataFrames are not empty
     if waypoints_df.empty:
-        print("The waypoints DataFrame is empty.")
+        HELPER_LOGGER.error("The waypoints DataFrame is empty.")
         return pd.DataFrame()
     if erp_df.empty:
-        print("The ERP DataFrame is empty.")
+        HELPER_LOGGER.error("The ERP DataFrame is empty.")
         return pd.DataFrame()
 
     # Append ERP to the beginning of the DataFrame
