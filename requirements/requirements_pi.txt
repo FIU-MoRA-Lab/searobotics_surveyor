@@ -7,9 +7,6 @@ Flask==3.1.0
 matplotlib==3.8.3
 # servers\lidar_server.py: 1
 numpy==1.26.3
-# servers\_camera_server.py: 4
-# servers\camera_server.py: 6
-picamera2==0.3.25
 # servers\_camera_server.py: 7
 # servers\camera_server.py: 2
 pillow==10.2.0
