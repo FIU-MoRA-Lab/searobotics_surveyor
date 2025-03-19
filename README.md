@@ -47,11 +47,16 @@ As said before each client has a server counterpart in charge of retreiving the 
     pip3 install -r requirements_exo2_dac.txt
 ```
 8. Using the companion laptop, access the Raspberry Pi by making a remote connection to the address `192.168.0.20` (the Pi should have this static address set beforehand).
-9. From the `servers` folder, copy either the file `camera_server.py` or the file `_camera_server.py` and `servers/requirements_pi.txt` into the Pi and install Python and the necessary packages. To do so run
+9. Frm the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may skip next steps):
+```bash
+    pip3 setup_pi.py
+```
+
+10. From the `servers` folder, copy either the file `camera_server.py` or the file `_camera_server.py` and `servers/requirements_pi.txt` into the Pi and install Python and the necessary packages. To do so run
 ```bash
     pip3 install -r requirements_camera.txt
 ```
-10. From the `servers` folder, copy the files `lidar_server.py` and `rplidar.cpython-311-arm-linux-gnueabihf.so` (for arm processors) or `rplidar.cpython-311-x86-linux-gnueabihf.so` (for x86 processors) into the Pi.
+11. From the `servers` folder, copy the files `lidar_server.py` and `rplidar.cpython-311-arm-linux-gnueabihf.so` (for arm processors) or `rplidar.cpython-311-x86-linux-gnueabihf.so` (for x86 processors) into the Pi.
 
 # Media
 - Coming soon
