@@ -4,7 +4,6 @@ import os
 import subprocess
 import urllib.request
 import sys
-import shutil
 
 # Get the user's home directory
 home_dir = os.path.expanduser("~")
@@ -25,19 +24,17 @@ python_scripts_urls = [
 # Add more script URLs here as needed
 python_scripts = [f"{current_directory}/{script.split('/')[-1]}" for script in python_scripts_urls]
 
-
 # Step 0: Update and upgrade the system
 def update_system():
     print("Updating and upgrading the system...")
-    subprocess.run(["sudo", "apt-get", "update"], check=True)
-    subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
+    subprocess.run("sudo apt-get update", shell=True, check=True)
+    subprocess.run("sudo apt full-upgrade -y", shell=True, check=True)
     print("System updated and upgraded.")
 
 # Step 1: Download the requirements file (requirements_pi.txt)
 def download_requirements():
     print(f"Downloading {requirements_filename}...")
     urllib.request.urlretrieve(reqs_url, requirements_filename)
-    
     
 # Step 2: Create a Python 3.11 virtual environment
 def create_virtualenv():
@@ -50,12 +47,28 @@ def install_requirements():
     print("Installing dependencies from requirements_pi.txt...")
     subprocess.run([f"{virtualenv_path}/bin/pip", "install", "-r", requirements_filename])
 
-# Step 4: Add the virtual environment activation to terminal startup (in .bashrc)
+# Step 4: Add the virtual environment activation to bashrc if not already present
 def update_bashrc():
-    print("Adding virtual environment activation to terminal startup...")
-    with open(bashrc_script, "a") as bashrc:
-        bashrc.write(f"\n# Activate virtual environment at terminal startup\n")
-        bashrc.write(f"source {virtualenv_path}/bin/activate\n")
+    try:
+        print("Checking if virtual environment activation is already in .bashrc...")
+        
+        # Read the existing .bashrc file
+        with open(bashrc_script, "r") as bashrc:
+            lines = bashrc.readlines()
+
+        source_command = f"source {virtualenv_path}/bin/activate\n"
+        
+        # Check if the source command already exists
+        if any(source_command.strip() in line.strip() for line in lines):
+            print("Virtual environment activation is already set in .bashrc. Skipping update.")
+        else:
+            print("Adding virtual environment activation to .bashrc...")
+            with open(bashrc_script, "a") as bashrc:
+                bashrc.write(f"\n# Activate virtual environment at terminal startup\n")
+                bashrc.write(source_command)
+            print("Virtual environment activation added successfully.")
+    except Exception as e:
+        print(f"Error updating .bashrc: {e}")
 
 # Step 5: Download the Python scripts from the repository
 def download_python_scripts():
@@ -69,9 +82,9 @@ def download_python_scripts():
 def install_dependencies():
     try:
         print("Installing cmake via apt-get...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "cmake"], check=True)
+        subprocess.run("sudo apt-get install -y cmake", shell=True, check=True)
         print("Installing pybind11 via apt-get...")
-        subprocess.run(["sudo", "apt-get", "install", "-y", "pybind11-dev"], check=True)
+        subprocess.run("sudo apt-get install -y pybind11-dev", shell=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error installing dependencies: {e}")
 
@@ -79,70 +92,43 @@ def install_dependencies():
 def compile_lidar_package():
     try:
         print("Trying to compile the lidar package from source...")
-        # Clone the repository and recurse submodules
         subprocess.run("git clone --recurse-submodules https://github.com/FIU-MoRA-Lab/rplidar_python.git", shell=True, check=True)
-
-        # Change the directory to rplidar_python
         os.chdir("rplidar_python")
-
-        # Run the 'make' command on the rplidar_sdk directory
         subprocess.run("make -C ./rplidar_sdk", shell=True, check=True)
-
-        # Run cmake to generate build files
         subprocess.run("cmake -S . -B build -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=../", shell=True, check=True)
-
-        # Build the project
         subprocess.run("cmake --build build", shell=True, check=True)
-
-        # Remove the build directory
         subprocess.run("rm -rf build", shell=True, check=True)
-
         print("Important!!!!!!!!!!!!!!\nCopy the generated .so file from the folder 'rplidar_python' into the desktop.")
     except Exception as e:
         print(f"Error occurred while compiling lidar library: {e}")
         print("Refer to: https://github.com/FIU-MoRA-Lab/rplidar_python")
 
-# Step 8: 
+# Step 8: Set static IP
 def set_static_ip():
     print("Setting static IP address...")
-    with open("/etc/dhcpcd.conf", "a") as dhcpcd:
-        dhcpcd.write("interface eth0\n")
-        dhcpcd.write("static ip_address=192.168.0.20")
-
-
+    config_line = "static ip_address=192.168.0.20"
+    with open("/etc/dhcpcd.conf", "r+") as dhcpcd:
+        lines = dhcpcd.readlines()
+        if any(config_line in line for line in lines):
+            print("Static IP is already set. Skipping update.")
+        else:
+            dhcpcd.write("interface eth0\n")
+            dhcpcd.write(config_line + "\n")
+            print("Static IP address set successfully.")
 
 # Main script execution
 def main():
     print("Starting setup process...")
     print("Do not install picamera2 using pip3; if so, uninstall it (weird performance issues)")
-    
-    # Update and upgrade the system
     update_system()
-
-    # Download the requirements file
     download_requirements()
-    
-    # Create the virtual environment
     create_virtualenv()
-    
-    # Install the dependencies from requirements.txt
     install_requirements()
-    
-    # Add virtual environment activation to bashrc
     update_bashrc()
-    
-    # Download necessary Python scripts
     download_python_scripts()
-    
-    # Install system dependencies (cmake, pybind11)
     install_dependencies()
-    
-    # Compile the lidar package
     compile_lidar_package()
-
-    # Set static IP address
     set_static_ip()
-    
     print("Setup complete.")
     print("You may delete this file and the folder 'rplidar_python' after moving the .so file.")
 
