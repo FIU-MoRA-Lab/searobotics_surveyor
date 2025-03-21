@@ -16,7 +16,7 @@ reqs_url = f"{base_git_repo_url}/requirements/requirements_pi.txt"  # URL of the
 requirements_filename = reqs_url.split('/')[-1]
 virtualenv_path = f"{current_directory}/surveyor_env"  # Path to the virtual environment
 bashrc_script = f"{home_dir}/.bashrc"  # The .bashrc file
-startup_script_path = f"{home_dir}/Desktop/startup_script.sh"  # Path to the startup script
+
 python_scripts_urls = [
     f"{base_git_repo_url}/servers/camera_server.py",
     f"{base_git_repo_url}/servers/lidar_server.py",
@@ -24,6 +24,14 @@ python_scripts_urls = [
 ]
 # Add more script URLs here as needed
 python_scripts = [f"{current_directory}/{script.split('/')[-1]}" for script in python_scripts_urls]
+
+
+# Step 0: Update and upgrade the system
+def update_system():
+    print("Updating and upgrading the system...")
+    subprocess.run(["sudo", "apt-get", "update"], check=True)
+    subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
+    print("System updated and upgraded.")
 
 # Step 1: Download the requirements file (requirements_pi.txt)
 def download_requirements():
@@ -94,6 +102,13 @@ def compile_lidar_package():
         print(f"Error occurred while compiling lidar library: {e}")
         print("Refer to: https://github.com/FIU-MoRA-Lab/rplidar_python")
 
+# Step 8: 
+def set_static_ip():
+    print("Setting static IP address...")
+    with open("/etc/dhcpcd.conf", "a") as dhcpcd:
+        dhcpcd.write("interface eth0\n")
+        dhcpcd.write("static ip_address=192.168.0.20")
+
 
 
 # Main script execution
@@ -101,6 +116,9 @@ def main():
     print("Starting setup process...")
     print("Do not install picamera2 using pip3; if so, uninstall it (weird performance issues)")
     
+    # Update and upgrade the system
+    update_system()
+
     # Download the requirements file
     download_requirements()
     
@@ -121,6 +139,9 @@ def main():
     
     # Compile the lidar package
     compile_lidar_package()
+
+    # Set static IP address
+    set_static_ip()
     
     print("Setup complete.")
     print("You may delete this file and the folder 'rplidar_python' after moving the .so file.")

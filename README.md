@@ -36,21 +36,30 @@ As said before each client has a server counterpart in charge of retreiving the 
 
 # Installation and Set-up
 
-1. Clone this repository to your device connected to the Local Area Network e.g. Raspberry Pi, DAC computer.
-2. Assign an unused fixed IP Address to your device (if not assigned previously).
-3. Connect the Sonde to the Surveyor using the serial to USB adapter and the Sonde adapter.
-4. Power on the Surveyor, network box, Antenna, and provided network attached laptop.
-5. Using the companion laptop, load the SeaRobotics software and power on the Exo2 Sonde.
-6. Using the companion laptop, access the DAC (windows computer with black background) by making a remote connection to the address `192.168.0.68` (it should be preset by default).
-7. From the `servers` folder, copy the file `exo2_server.py` and `servers/requirements_exo2_dac.txt` into the DAC desktop and install Python and the necessary packages. To do so run
+## 1. Surveyor set-up
+
+- Clone this repository to your device connected to the Local Area Network e.g. Raspberry Pi, DAC computer.
+- Assign an unused fixed IP Address to your device (if not assigned previously).
+- Connect the Sonde to the Surveyor using the serial to USB adapter and the Sonde adapter.
+- Power on the Surveyor, network box, Antenna, and provided network attached laptop.
+- Using the companion laptop, load the SeaRobotics software and power on the Exo2 Sonde.
+## 2. DAC set-up
+- Using the companion laptop, access the DAC (windows computer with black background) by making a remote connection to the address `192.168.0.68` (it should be preset by default).
+- From the `servers` folder, copy the file `exo2_server.py` and `servers/requirements_exo2_dac.txt` into the DAC desktop and install Python and the necessary packages. To do so run
+
 ```bash
     pip3 install -r requirements_exo2_dac.txt
 ```
-8. Using the companion laptop, access the Raspberry Pi by making a remote connection to the address `192.168.0.20` (the Pi should have this static address set beforehand).
-9. Frm the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may skip next steps):
+## 3. Raspberry Pi set-up
+
+### 3.1 Easy set up
+
+From the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may skip next steps):
 ```bash
-    pip3 setup_pi.py
+    python3 setup_pi.py
 ```
+8. Using the companion laptop, access the Raspberry Pi by making a remote connection to the address `192.168.0.20` (the Pi should have this static address set beforehand).
+9. 
 
 10. From the `servers` folder, copy either the file `camera_server.py` or the file `_camera_server.py` and `servers/requirements_pi.txt` into the Pi and install Python and the necessary packages. To do so run
 ```bash
