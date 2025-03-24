@@ -106,15 +106,7 @@ def compile_lidar_package():
 # Step 8: Set static IP
 def set_static_ip():
     print("Setting static IP address...")
-    config_line = "static ip_address=192.168.0.20"
-    with open("/etc/dhcpcd.conf", "r+") as dhcpcd:
-        lines = dhcpcd.readlines()
-        if any(config_line in line for line in lines):
-            print("Static IP is already set. Skipping update.")
-        else:
-            dhcpcd.write("interface eth0\n")
-            dhcpcd.write(config_line + "\n")
-            print("Static IP address set successfully.")
+    subprocess.run("sudo nmcli con mod 'Wired connection 1' ipv4.method manual ipv4.addr 192.168.1.20/24", shell=True, check=True)
 
 # Main script execution
 def main():
