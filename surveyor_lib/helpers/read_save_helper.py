@@ -47,7 +47,7 @@ def append_to_csv(
 
 # Get the parent's parent directory of the current script and create the "out" directory if it doesn't exist
 append_to_csv.out_dir_path = os.path.abspath(
-    os.path.join(__file__, "../../../../")
+    os.path.join(__file__, "../../../../out/")
 )
 
 
