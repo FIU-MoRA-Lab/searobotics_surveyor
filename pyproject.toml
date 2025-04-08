@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 79
+target-version = ['py38']
+skip-string-normalization = false
+
+[tool.flake8]
+ignore = ["E501", "W503"]
+exclude = ["__init__.py"]
+
+[tool.isort]
+profile = "black"

@@ -2,11 +2,17 @@ import csv
 import datetime
 import os
 import time
+
 import pandas as pd
+
 from .logger import HELPER_LOGGER
 
 
-def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
+def append_to_csv(
+    data,
+    cols=["latitude", "longitude"],
+    post_fix="",
+):
     """
     Append data to a CSV file with a specific date in the filename.
 
@@ -18,27 +24,31 @@ def append_to_csv(data, cols=["latitude", "longitude"], post_fix=""):
     # Get today's date in the "YYYYMMDD" format
     today_date = datetime.date.today().strftime("%Y%m%d")
 
-    # Get the parent's parent directory of the current script
-    grandparent_dir =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    HELPER_LOGGER.debug(f'out folder at {grandparent_dir}')
+    HELPER_LOGGER.debug(f"out folder at {append_to_csv.out_dir_path}")
 
-    # Create the "out" directory if it doesn't exist
-    out_dir = os.path.join(grandparent_dir, "out")
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(append_to_csv.out_dir_path, exist_ok=True)
 
     # Define the CSV file path using today's date
-    file_path = os.path.join(out_dir, f"{today_date}{post_fix}.csv")
+    file_path = os.path.join(
+        append_to_csv.out_dir_path, f"{today_date}{post_fix}.csv"
+    )
 
     # Check if the file already exists, and create it with headers if it doesn't
     if not os.path.isfile(file_path):
-        with open(file_path, mode='w', newline='') as file:
+        with open(file_path, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(cols)
 
     # Append the data to the CSV file
-    with open(file_path, mode='a', newline='') as file:
+    with open(file_path, mode="a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(data)
+
+
+# Get the parent's parent directory of the current script and create the "out" directory if it doesn't exist
+append_to_csv.out_dir_path = os.path.abspath(
+    os.path.join(__file__, "../../../../")
+)
 
 
 def save(data, post_fix=""):
@@ -53,13 +63,21 @@ def save(data, post_fix=""):
 
     # If combined data is not empty, append to CSV
     if data:
-        append_to_csv(data.values(), data.keys(), post_fix=post_fix)
+        append_to_csv(
+            data.values(),
+            data.keys(),
+            post_fix=post_fix,
+        )
     else:
-        HELPER_LOGGER.error('No values to be appended to the CSV')
+        HELPER_LOGGER.error("No values to be appended to the CSV")
 
 
-
-def process_gga_and_save_data(surveyor_connection, data_keys=['state', 'exo2'], post_fix="", delay=1.0):
+def process_gga_and_save_data(
+    surveyor_connection,
+    data_keys=["state", "exo2"],
+    post_fix="",
+    delay=1.0,
+):
     """
     Retrieve and process GGA and Exo2 data, then append it to a CSV file.
 
@@ -73,22 +91,28 @@ def process_gga_and_save_data(surveyor_connection, data_keys=['state', 'exo2'], 
     surveyor_data = surveyor_connection.get_data(data_keys)
 
     # Save the data to a CSV file
-    if time.time() - process_gga_and_save_data.last_save_time < delay: #Apply delay to prevent same location
-        time.sleep(delay - time.time() + process_gga_and_save_data.last_save_time)
+    if (
+        time.time() - process_gga_and_save_data.last_save_time < delay
+    ):  # Apply delay to prevent same location
+        time.sleep(
+            delay - time.time() + process_gga_and_save_data.last_save_time
+        )
     process_gga_and_save_data.last_save_time = time.time()
 
     save(surveyor_data, post_fix)
     return surveyor_data
 
+
 process_gga_and_save_data.last_save_time = time.time()
+
 
 def read_csv_into_tuples(filepath):
     """
     Reads a CSV file into a list of tuples.
-    
+
     Parameters:
         filepath (str): The path to the CSV file.
-        
+
     Returns:
         list of tuples: Each tuple represents a row from the CSV file.
     """
@@ -96,13 +120,15 @@ def read_csv_into_tuples(filepath):
     df = pd.read_csv(filepath)
 
     try:
-        df = df[['Latitude', 'Longitude']]
+        df = df[["Latitude", "Longitude"]]
     except KeyError:
         try:
-            df = df[['latitude', 'longitude']]
+            df = df[["latitude", "longitude"]]
         except KeyError:
-            HELPER_LOGGER.warning('Assuming first column to be Latitude and second to be Longitude')
-            df = df.iloc[:, :2]        
-    
+            HELPER_LOGGER.warning(
+                "Assuming first column to be Latitude and second to be Longitude"
+            )
+            df = df.iloc[:, :2]
+
     # Convert the DataFrame rows into tuples and return as a list
     return [tuple(row) for row in df.values]

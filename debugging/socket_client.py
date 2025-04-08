@@ -1,7 +1,8 @@
-import serial
 import time
 
-ser = serial.Serial('/dev/pts/5', 9600, timeout=1)
+import serial
+
+ser = serial.Serial("/dev/pts/5", 9600, timeout=1)
 print("Client is connected to /dev/pts/5")
 
 time.sleep(0.2)  # Give some time for the server to start

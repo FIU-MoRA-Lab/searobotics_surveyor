@@ -1,6 +1,8 @@
-import sys
 import argparse
+import sys
+
 import requests
+
 
 class LidarClient:
     """
@@ -11,7 +13,11 @@ class LidarClient:
         server_port (str): Port number of the server (default is "5002").
     """
 
-    def __init__(self, server_ip="192.168.0.20", server_port="5002"):
+    def __init__(
+        self,
+        server_ip="192.168.0.20",
+        server_port="5002",
+    ):
         """
         Initializes a LidarClient object.
 
@@ -40,29 +46,40 @@ class LidarClient:
         else:
             print(f"Failed to get RPLidar data: {response.status_code}")
             return None
-            
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import numpy as np
 
-        # Create an ArgumentParser object
-    print(f'Run {sys.argv[0]} -h  for help')
-    parser = argparse.ArgumentParser(description='Client script for the Lidar.')
+    # Create an ArgumentParser object
+    print(f"Run {sys.argv[0]} -h  for help")
+    parser = argparse.ArgumentParser(
+        description="Client script for the Lidar."
+    )
 
     # Add arguments
-    parser.add_argument('--host', type=str, default='192.168.0.20', help='IP address of the host (default: 192.168.0.20).')
-    parser.add_argument('--port', type=int, default=5002, help='Port number (default: 5002).')
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="192.168.0.20",
+        help="IP address of the host (default: 192.168.0.20).",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5002,
+        help="Port number (default: 5002).",
+    )
 
     # Parse the command line arguments
     args = vars(parser.parse_args())
 
-    lidar_client = LidarClient(args['host'], args['port'])
-
+    lidar_client = LidarClient(args["host"], args["port"])
 
     fig = plt.figure(figsize=(6, 6))
     ax = fig.add_subplot(111, polar=True)
-    scatter = ax.scatter([], [], c = 'b', s=10)  # LIDAR trace
+    scatter = ax.scatter([], [], c="b", s=10)  # LIDAR trace
     ax.set_ylim(0, 2)  # Adjust max range to your LIDAR's range
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)

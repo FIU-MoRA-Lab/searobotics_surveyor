@@ -1,13 +1,14 @@
-import sys
-import requests
 import argparse
+import sys
+
+import requests
 
 PARAMS_DICT = {
-    1: "Temperature (C)", # In degrees
+    1: "Temperature (C)",  # In degrees
     2: "Temperature (F)",
     3: "Temperature (K)",
     4: "Conductivity (mS/cm)",
-    5: "Conductivity (uS/cm)", #u mircro S/cm
+    5: "Conductivity (uS/cm)",  # u mircro S/cm
     6: "Specific Conductance (mS/cm)",
     7: "Specific Conductance (uS/cm)",
     10: "TDS (g/L)",
@@ -67,11 +68,16 @@ PARAMS_DICT = {
     239: "Wiper Peak Current (mA)",
     240: "Vertical Position (m)",
     241: "Vertical Position (ft)",
-    242: "Chlorophyll (cells/mL)"
+    242: "Chlorophyll (cells/mL)",
 }
 
+
 class Exo2Client:
-    def __init__(self, server_ip="192.168.0.68", server_port="5000"):
+    def __init__(
+        self,
+        server_ip="192.168.0.68",
+        server_port="5000",
+    ):
         """
         Initialize the Exo2Client object.
 
@@ -84,7 +90,6 @@ class Exo2Client:
         self.server_url = f"http://{server_ip}:{server_port}/data"
         self.initialize_server_serial_connection()
         self.exo2_params = self.get_exo2_params()
-
 
     def get_data_from_command(self, command):
         """
@@ -105,19 +110,21 @@ class Exo2Client:
             return None
 
     def _get_data(self):
-       """
-       Send a GET request to the exo2 sensor and retrieve the data.
+        """
+        Send a GET request to the exo2 sensor and retrieve the data.
 
-       Returns:
-           str: The data received from the exo2 sensor, or None if an error occurred.
-       """
-       try:
-           response = requests.get(self.server_url) # Uses a get request instead of using send_command('data') for performance reasons
-           response.raise_for_status()  # Raise an exception for non-2xx status codes
-           return response.text
-       except requests.RequestException as e:
-           print(f"Error fetching data from server: {e}")
-           return None
+        Returns:
+            str: The data received from the exo2 sensor, or None if an error occurred.
+        """
+        try:
+            response = requests.get(
+                self.server_url
+            )  # Uses a get request instead of using send_command('data') for performance reasons
+            response.raise_for_status()  # Raise an exception for non-2xx status codes
+            return response.text
+        except requests.RequestException as e:
+            print(f"Error fetching data from server: {e}")
+            return None
 
     def get_exo2_data(self):
         """
@@ -132,10 +139,18 @@ class Exo2Client:
             exo2_data_str = self._get_data()
 
         # Split the received string on whitespace and convert values to floats
-        
+
         exo2_data_list = exo2_data_str.split()
-        assert len(exo2_data_list) == len(self.exo2_params), 'For some reason the params and the data size do not match'
-        exo2_data_dict = { param_name : float(value) for param_name, value in zip(self.exo2_params.values(), exo2_data_list) }
+        assert len(exo2_data_list) == len(
+            self.exo2_params
+        ), "For some reason the params and the data size do not match"
+        exo2_data_dict = {
+            param_name: float(value)
+            for param_name, value in zip(
+                self.exo2_params.values(),
+                exo2_data_list,
+            )
+        }
         return exo2_data_dict
 
     def get_exo2_params(self):
@@ -148,22 +163,22 @@ class Exo2Client:
         param_str = None
         while not param_str:
             # Keep requesting data until a non-empty string (other than "#") is received
-            param_str = self.get_data_from_command('para')
+            param_str = self.get_data_from_command("para")
             try:
                 param_list = list(map(int, param_str.split()))
             except:
-                print('Received a non-integer list, attempting again...')
+                print("Received a non-integer list, attempting again...")
                 param_str = None
 
         # Split the received string on whitespace and convert values to ints
-        
-        return {key : PARAMS_DICT[key] for key in param_list}
-    
+
+        return {key: PARAMS_DICT[key] for key in param_list}
+
     def initialize_server_serial_connection(self):
         """
         Initializes the serial connection in the server and prints a confirmation string
         """
-        print(self.get_data_from_command(b'init'))
+        print(self.get_data_from_command(b"init"))
 
 
 def main(args):
@@ -174,20 +189,33 @@ def main(args):
         args (dict): A dictionary of command-line arguments.
     """
     client = Exo2Client(**args)
-    
+
     while True:
         data = client.get_data()
         if data:
             print(f"Received data: {data}")
             # Example of received data: "101723 141347 77.55 6.79 21.922 0.09 -0.00 14.71 10.364"
 
+
 if __name__ == "__main__":
-    print(f'Run {sys.argv[0]} -h  for help')
-    parser = argparse.ArgumentParser(description='Client script to connect to a server.')
+    print(f"Run {sys.argv[0]} -h  for help")
+    parser = argparse.ArgumentParser(
+        description="Client script to connect to a server."
+    )
 
     # Add arguments
-    parser.add_argument('--server_ip', type=str, default='192.168.0.68', help='IP address of the server (default: 192.168.0.68).')
-    parser.add_argument('--server_port', type=int, default=5000, help='Port number of the server (default: 5000).')
+    parser.add_argument(
+        "--server_ip",
+        type=str,
+        default="192.168.0.68",
+        help="IP address of the server (default: 192.168.0.68).",
+    )
+    parser.add_argument(
+        "--server_port",
+        type=int,
+        default=5000,
+        help="Port number of the server (default: 5000).",
+    )
 
     # Parse the command line arguments
     args = parser.parse_args()

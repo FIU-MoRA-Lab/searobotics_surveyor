@@ -1,30 +1,53 @@
-import socket
-import time
-from . import helpers as hlp
-from . import clients
-from geopy.distance import geodesic
-import threading
-import os
 import csv
 import json
-import numpy as np
-import h5py
-from datetime import datetime
 import logging
+import os
+import socket
+import threading
+import time
+from datetime import datetime
+
+import h5py
+import numpy as np
+from geopy.distance import geodesic
+
+from . import clients
+from . import helpers as hlp
+
 
 class Surveyor:
     sensors_config = {
-            'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000},
-            'camera': {'camera_server_ip': '192.168.0.20', 'camera_server_port': 5001},
-            'lidar': {'lidar_server_ip': '192.168.0.20', 'lidar_server_port': 5002}
-        }
-    def __init__(self, 
-             host='192.168.0.50', port=8003,
-             sensors_to_use=['exo2', 'camera', 'lidar'], 
-             sensors_config={'exo2': {}, 'camera': {}, 'lidar' :{}},
-             record = True,
-             logger_level=logging.DEBUG):
-    
+        "exo2": {
+            "exo2_server_ip": "192.168.0.68",
+            "exo2_server_port": 5000,
+        },
+        "camera": {
+            "camera_server_ip": "192.168.0.20",
+            "camera_server_port": 5001,
+        },
+        "lidar": {
+            "lidar_server_ip": "192.168.0.20",
+            "lidar_server_port": 5002,
+        },
+    }
+
+    def __init__(
+        self,
+        host="192.168.0.50",
+        port=8003,
+        sensors_to_use=[
+            "exo2",
+            "camera",
+            "lidar",
+        ],
+        sensors_config={
+            "exo2": {},
+            "camera": {},
+            "lidar": {},
+        },
+        record=True,
+        logger_level=logging.DEBUG,
+    ):
         """
         Initialize the Surveyor object with server connection details and sensor configurations.
 
@@ -34,7 +57,7 @@ class Surveyor:
             sensors_to_use (list of str, optional): List of sensor types to initialize (e.g., 'exo2', 'camera' or 'lidar').
                                                     Defaults to ['exo2', 'camera', 'lidar'].
             sensors_config (dict, optional): A dictionary for configuring each sensor. If a sensor's configuration is empty,
-                                            it will be populated with default values. Defaults to 
+                                            it will be populated with default values. Defaults to
                                             {'exo2': {}, 'camera': {}, 'lidar' :{}}.
 
         Sensor Config Defaults:
@@ -51,32 +74,37 @@ class Surveyor:
         """
         self.host = host
         self.port = port
-        
+
         self._state = {}
-        
+
         # Apply default configurations if not provided
         for sensor in sensors_to_use:
             if sensors_config[sensor]:
                 self.sensors_config[sensor].update(sensors_config[sensor])
-        
+
         # Initialize sensors based on sensors_to_use
-        if 'exo2' in sensors_to_use:    
-            self.exo2 = clients.Exo2Client(self.sensors_config['exo2']['exo2_server_ip'], 
-                                        self.sensors_config['exo2']['exo2_server_port'])
-        
-        if 'camera' in sensors_to_use:     
-            self.camera = clients.CameraClient(self.sensors_config['camera']['camera_server_ip'], 
-                                            self.sensors_config['camera']['camera_server_port'])
-            
-        if 'lidar' in sensors_to_use:     
-            self.lidar = clients.LidarClient(self.sensors_config['lidar']['lidar_server_ip'], 
-                                            self.sensors_config['lidar']['lidar_server_port'])
-            
+        if "exo2" in sensors_to_use:
+            self.exo2 = clients.Exo2Client(
+                self.sensors_config["exo2"]["exo2_server_ip"],
+                self.sensors_config["exo2"]["exo2_server_port"],
+            )
+
+        if "camera" in sensors_to_use:
+            self.camera = clients.CameraClient(
+                self.sensors_config["camera"]["camera_server_ip"],
+                self.sensors_config["camera"]["camera_server_port"],
+            )
+
+        if "lidar" in sensors_to_use:
+            self.lidar = clients.LidarClient(
+                self.sensors_config["lidar"]["lidar_server_ip"],
+                self.sensors_config["lidar"]["lidar_server_port"],
+            )
+
         self._parallel_update = True
         self.record = record
         hlp.HELPER_LOGGER.setLevel(level=logger_level)
         self._logger = hlp.HELPER_LOGGER
-
 
     def __enter__(self):
         """
@@ -92,23 +120,29 @@ class Surveyor:
         try:
             self.socket.settimeout(5)  # Set a timeout for the connection
             self.socket.connect((self.host, self.port))
-            self._logger.info('Surveyor connected!')
-            self._receive_and_update_thread = threading.Thread(target=self._receive_and_update_thread)
+            self._logger.info("Surveyor connected!")
+            self._receive_and_update_thread = threading.Thread(
+                target=self._receive_and_update_thread
+            )
             self._receive_and_update_thread.daemon = True
             self._receive_and_update_thread.start()
             while not self.get_state():
                 time.sleep(0.1)
-            self._logger.info('Update thread online!')
+            self._logger.info("Update thread online!")
             if self.record:
-                self._logger.info('Initializing record thread...')
-                self._recording_thread = threading.Thread(target=self._save_data_continuously)
+                self._logger.info("Initializing record thread...")
+                self._recording_thread = threading.Thread(
+                    target=self._save_data_continuously
+                )
                 self._recording_thread.daemon = True
                 self._recording_thread.start()
             else:
-                self._logger.info('Not recoding sensors...')
+                self._logger.info("Not recoding sensors...")
 
         except socket.error as e:
-            self._logger.error(f"Error connecting to {self.host}:{self.port} - {e}")
+            self._logger.error(
+                f"Error connecting to {self.host}:{self.port} - {e}"
+            )
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -156,7 +190,7 @@ class Surveyor:
             data = self.socket.recv(bytes)
             if not data:
                 raise ConnectionError("Connection closed by the server.")
-            return data.decode('utf-8')
+            return data.decode("utf-8")
         except socket.timeout:
             self._logger.error("Socket timeout.")
             raise
@@ -179,22 +213,31 @@ class Surveyor:
             os.makedirs(records_dir)
 
         # File paths for saving data inside the 'records' folder
-        image_data_path = os.path.join(records_dir, 'image_data.h5')  # Using HDF5 for image data
-        state_data_path = os.path.join(records_dir, 'state_data.csv')
-        lidar_data_path = os.path.join(records_dir, 'lidar_data.json')
+        image_data_path = os.path.join(
+            records_dir, "image_data.h5"
+        )  # Using HDF5 for image data
+        state_data_path = os.path.join(records_dir, "state_data.csv")
+        lidar_data_path = os.path.join(records_dir, "lidar_data.json")
 
         # Get image shape from a sample image
         shape = self.get_image()[1].shape
-        
+
         # Open or create the HDF5 file for storing images
-        with h5py.File(image_data_path, 'a') as f:
+        with h5py.File(image_data_path, "a") as f:
             # Create a dataset for images if it doesn't exist
-            if 'images' not in f:
+            if "images" not in f:
                 # Create an empty dataset with an initial shape of (0, *shape)
-                dataset = f.create_dataset('images', (0, *shape), maxshape=(None, *shape),
-                                        dtype=np.uint8, chunks=(1, *shape), compression="gzip", compression_opts=4)
+                dataset = f.create_dataset(
+                    "images",
+                    (0, *shape),
+                    maxshape=(None, *shape),
+                    dtype=np.uint8,
+                    chunks=(1, *shape),
+                    compression="gzip",
+                    compression_opts=4,
+                )
             else:
-                dataset = f['images']
+                dataset = f["images"]
 
             images_received = 0  # Counter to track the number of images
 
@@ -205,38 +248,56 @@ class Surveyor:
                     lidar_data = None
                     image_data = None
 
-                    if hasattr(self, 'exo2'):
+                    if hasattr(self, "exo2"):
                         exo_data = self.get_exo2_data()
                         state.update(exo_data)
 
-                    if hasattr(self, 'lidar'):
+                    if hasattr(self, "lidar"):
                         distances, angles = self.get_lidar_data()
-                        lidar_data = {"distances": distances, "angles": angles}
+                        lidar_data = {
+                            "distances": distances,
+                            "angles": angles,
+                        }
 
-                    if hasattr(self, 'camera'):
+                    if hasattr(self, "camera"):
                         ret, image = self.get_image()
                         if ret:
                             image_data = image
 
                     # Save state data to CSV
-                    with open(state_data_path, mode='a', newline='') as csv_file:
-                        self._logger.debug(f'Saving state:\n{state}')
+                    with open(
+                        state_data_path,
+                        mode="a",
+                        newline="",
+                    ) as csv_file:
+                        self._logger.debug(f"Saving state:\n{state}")
                         fieldnames = list(state.keys())
-                        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                        writer = csv.DictWriter(
+                            csv_file,
+                            fieldnames=fieldnames,
+                        )
                         if csv_file.tell() == 0:
                             writer.writeheader()
                         writer.writerow(state)
 
                     # Save lidar data to JSON
                     if lidar_data:
-                        with open(lidar_data_path, mode='a') as json_file:
-                            json_file.write(json.dumps(lidar_data) + '\n')
+                        with open(
+                            lidar_data_path,
+                            mode="a",
+                        ) as json_file:
+                            json_file.write(json.dumps(lidar_data) + "\n")
 
                     # Append image to the HDF5 dataset
                     if image_data is not None:
                         # Resize the dataset to accommodate a new image
-                        dataset.resize(dataset.shape[0] + 1, axis=0)  # Increase the size by 1 along the first dimension
-                        dataset[-1] = image_data  # Append the new image to the dataset
+                        dataset.resize(
+                            dataset.shape[0] + 1,
+                            axis=0,
+                        )  # Increase the size by 1 along the first dimension
+                        dataset[-1] = (
+                            image_data  # Append the new image to the dataset
+                        )
                         images_received += 1
 
                         # Manually flush the data to disk after adding an image
@@ -244,24 +305,26 @@ class Surveyor:
 
                     time.sleep(1)
             except KeyboardInterrupt:
-                self._logger.info("Process interrupted. Flushing data to disk...")
+                self._logger.info(
+                    "Process interrupted. Flushing data to disk..."
+                )
                 dataset.flush()  # Ensure data is saved to disk on exit
-            
-
 
     def set_standby_mode(self):
         msg = "PSEAC,L,0,0,0,"
         self.send(msg)
 
-    # Thrust and thrust_diff must be an integer between -100 and 100 
+    # Thrust and thrust_diff must be an integer between -100 and 100
     # negative means backwards/counter_clockwise
 
-    def set_thruster_mode(self, thrust, thrust_diff, delay = 0.05): # Delay to ensure that the motors spin?
+    def set_thruster_mode(
+        self, thrust, thrust_diff, delay=0.05
+    ):  # Delay to ensure that the motors spin?
         thrust, thrust_diff = np.clip([thrust, thrust_diff], -70, 70)
         msg = f"PSEAC,T,0,{int(thrust)},{int(thrust_diff)},"
         self.send(msg)
         time.sleep(delay)
-        
+
     def set_station_keep_mode(self):
         msg = "PSEAC,R,,,,"
         self.send(msg)
@@ -282,7 +345,9 @@ class Surveyor:
 
     def start_file_download_mode(self, num_lines):
         if num_lines != int(num_lines):
-            self._logger.error('Non integer number of lines. Converting to integer...')
+            self._logger.error(
+                "Non integer number of lines. Converting to integer..."
+            )
         msg = "PSEAC,F," + str(int(num_lines)) + ",000,000,"
         self.send(msg)
         time.sleep(0.1)
@@ -312,26 +377,36 @@ class Surveyor:
                 For "Heading" mode: thrust (float), degrees (float)
                 For "Start File Download" mode: num_lines (int)
         """
-        match mode:
-            case "Waypoint":
+        try:
+            if mode == "Waypoint":
                 self.set_waypoint_mode(args["thrust"])
-            case "Standby":
+            elif mode == "Standby":
                 self.set_standby_mode()
-            case "Thuster":
-                self.set_thruster_mode(args["thrust"], args["thrust_diff"], args["delay"])
-            case "Heading":
-                self.set_heading_mode(args["thrust"], args["degrees"])
-            case "Go To ERP":
+            elif mode == "Thruster":
+                self.set_thruster_mode(
+                    args["thrust"],
+                    args["thrust_diff"],
+                    args["delay"],
+                )
+            elif mode == "Heading":
+                self.set_heading_mode(
+                    args["thrust"],
+                    args["degrees"],
+                )
+            elif mode == "Go To ERP":
                 self.set_erp_mode()
-            case "Station Keep":
+            elif mode == "Station Keep":
                 self.set_station_keep_mode()
-            case "Start File Download":
+            elif mode == "Start File Download":
                 self.start_file_download_mode(args["num_lines"])
-            case "End File Download":
+            elif mode == "End File Download":
                 self.end_file_download_mode()
-            case _:
-                self._logger.error("Control mode not implemented")
-
+            else:
+                self._logger.error(f"Control mode '{mode}' not implemented")
+        except KeyError as e:
+            self._logger.error(f"Missing argument for mode '{mode}': {e}")
+        except Exception as e:
+            self._logger.error(f"Error executing control mode '{mode}': {e}")
 
     def send_waypoints(self, waypoints, erp, throttle):
         """
@@ -348,8 +423,10 @@ class Surveyor:
         """
         # Create a DataFrame from the list of waypoints and ERP message
         df = hlp.create_waypoint_messages_df_from_list(waypoints, erp)
-        throttle = int(np.clip(throttle, 0, 70)) # Ensure proper throttle format
-        
+        throttle = int(
+            np.clip(throttle, 0, 70)
+        )  # Ensure proper throttle format
+
         if df.empty:
             self._logger.error("Waypoints DataFrame is empty.")
             raise ValueError("DataFrame is empty.")
@@ -366,7 +443,7 @@ class Surveyor:
         commands.append(psear_cmd_with_checksum)
 
         # Add OIWPL commands generated from the DataFrame
-        oiwpl_cmds = df['nmea_message'].tolist()
+        oiwpl_cmds = df["nmea_message"].tolist()
         commands.extend(oiwpl_cmds)
 
         try:
@@ -383,7 +460,13 @@ class Surveyor:
             self._logger.error(f"Error sending waypoints - {e}")
             raise
 
-    def go_to_waypoint(self, waypoint, erp, throttle, tolerance_meters = 2.0):
+    def go_to_waypoint(
+        self,
+        waypoint,
+        erp,
+        throttle,
+        tolerance_meters=2.0,
+    ):
         """
         Load the next waypoint, send it to the boat and sets the boat to navigate towards it.
 
@@ -393,13 +476,20 @@ class Surveyor:
             throttle (int): The desired throttle value for the boat.
             tolerance_meters (float): The tolerance distance for the waypoint in meters. If the waypoint is within the margin, it will be loaded only once.
         """
-        
+
         self.send_waypoints([waypoint], erp, throttle)
         dist = geodesic(waypoint, self.get_gps_coordinates()).meters
-        self._logger.info(f'Headding to waypoint {waypoint} located at {dist:.2f} meters with throttle {throttle}')
+        self._logger.info(
+            f"Headding to waypoint {waypoint} located at {dist:.2f} meters with throttle {throttle}"
+        )
         self.set_waypoint_mode()
-        while self.get_control_mode() != 'Waypoint' and dist > tolerance_meters:
-            dist = geodesic(waypoint, self.get_gps_coordinates()).meters
+        while (
+            self.get_control_mode() != "Waypoint" and dist > tolerance_meters
+        ):
+            dist = geodesic(
+                waypoint,
+                self.get_gps_coordinates(),
+            ).meters
             self.set_waypoint_mode()
 
     def get_state(self):
@@ -415,10 +505,10 @@ class Surveyor:
         # control_mode = None
         # while not control_mode:
         #     control_mode = hlp.get_control_mode(self.receive())
-        control_mode = self._state.get('Control Mode', 'Unknown')
+        control_mode = self._state.get("Control Mode", "Unknown")
 
         return control_mode
-    
+
     def get_gps_coordinates(self):
         """
         Get GPS coordinates from the Surveyor connection object.
@@ -427,8 +517,10 @@ class Surveyor:
             Tuple containing GPS coordinates.
         """
 
-        return (self._state.get('Latitude', 0.0),
-                self._state.get('Longitude', 0.0))
+        return (
+            self._state.get("Latitude", 0.0),
+            self._state.get("Longitude", 0.0),
+        )
 
     def get_exo2_data(self):
         """
@@ -439,8 +531,8 @@ class Surveyor:
         """
 
         return self.exo2.get_exo2_data()
-    
-    def get_data(self, keys=['state', 'exo2']):
+
+    def get_data(self, keys=["state", "exo2"]):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
@@ -450,18 +542,18 @@ class Surveyor:
         Returns:
             dict: A dictionary containing the retrieved data for each specified key.
         """
-        # Dictionary mapping keys to corresponding getter functions. 
+        # Dictionary mapping keys to corresponding getter functions.
         # Must return either a list of values or a dictionary paired by name : value.
         # In the case it returns a list, data_labels dict has to be updated with a list of names
         getter_functions = {
-            'exo2': self.get_exo2_data, # Dictionary with Exo2 sonde data
-            'state': self.get_state,
-            'camera': self.get_image,
-            'lidar' : self.get_lidar_data
+            "exo2": self.get_exo2_data,  # Dictionary with Exo2 sonde data
+            "state": self.get_state,
+            "camera": self.get_image,
+            "lidar": self.get_lidar_data,
         }
         data_labels = {
-            'camera' : ['Image ret', 'Image'],
-            'lidar': ['Distances', 'Angles']
+            "camera": ["Image ret", "Image"],
+            "lidar": ["Distances", "Angles"],
         }
 
         # Initialize a list to store retrieved data
@@ -470,9 +562,9 @@ class Surveyor:
         # Iterate over specified keys and retrieve data using corresponding getter functions
         for key in keys:
             data = getter_functions[key]()
-            if type(data) == float:
+            if isinstance(data, float):
                 data = [data]
-            if type(data) != dict: 
+            if not isinstance(data, dict):
                 data = dict(zip(data_labels[key], data))
             data_dict.update(data)
 
@@ -487,16 +579,13 @@ class Surveyor:
                    and the frame itself.
         """
         return self.camera.get_image()
-    
+
     def get_lidar_data(self):
         """
         Retrieve the lidar measurements.
 
         Returns:
-            tuple: A 360 list containing the lidar measurements 
+            tuple: A 360 list containing the lidar measurements
                 and a list with their corresponding angles [0-360] degrees.
         """
         return self.lidar.get_data()
-
-    
-

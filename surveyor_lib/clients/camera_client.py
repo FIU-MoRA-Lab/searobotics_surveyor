@@ -1,8 +1,10 @@
-import cv2
+import argparse
 import sys
 import threading
 import time
-import argparse
+
+import cv2
+
 
 class CameraClient:
     """
@@ -13,7 +15,11 @@ class CameraClient:
         server_port (str): Port number of the server (default is "5001").
     """
 
-    def __init__(self, server_ip="192.168.0.20", server_port="5001"):
+    def __init__(
+        self,
+        server_ip="192.168.0.20",
+        server_port="5001",
+    ):
         """
         Initializes a CameraClient object.
 
@@ -34,16 +40,18 @@ class CameraClient:
         self._current_frame = None
         self._frame_thread = threading.Thread(target=self._image_updater)
         self._frame_thread.daemon = True  # Daemonize the thread so it will exit when the main program exits
-        self._frame_thread.start() 
-        time.sleep(0.1)# Give some time to update current images
+        self._frame_thread.start()
+        time.sleep(0.1)  # Give some time to update current images
 
         if not self.cap.isOpened():
-            print(f'''Error: Unable to open video stream.
+            print(
+                f"""Error: Unable to open video stream.
                       Check your camera configuration.
                       Ensure picamera_server.py or picamera_server_flask.py are running on the Pi.
-                      You should see the video at {self.server_url}''')
+                      You should see the video at {self.server_url}"""
+            )
         else:
-            print('Camera connected. Receiving stream!')
+            print("Camera connected. Receiving stream!")
 
     def get_image(self):
         """
@@ -53,7 +61,10 @@ class CameraClient:
             tuple: A tuple containing a boolean value indicating whether the frame is read successfully
                    and the frame itself.
         """
-        return self._current_frame is not None, self._current_frame
+        return (
+            self._current_frame is not None,
+            self._current_frame,
+        )
 
     def _image_updater(self):
         """
@@ -63,22 +74,35 @@ class CameraClient:
             ret, frame = self.cap.read()
             if ret:
                 self._current_frame = frame
-            time.sleep(0.015)  # Prevents excessive CPU usage by the thread (~66 FPS)
+            time.sleep(
+                0.015
+            )  # Prevents excessive CPU usage by the thread (~66 FPS)
+
 
 if __name__ == "__main__":
 
     # Create an ArgumentParser object
-    print(f'Run {sys.argv[0]} -h  for help')
-    parser = argparse.ArgumentParser(description='Client script for PiCamera.')
+    print(f"Run {sys.argv[0]} -h  for help")
+    parser = argparse.ArgumentParser(description="Client script for PiCamera.")
 
     # Add arguments
-    parser.add_argument('--host', type=str, default='192.168.0.20', help='IP address of the host (default: 192.168.0.20).')
-    parser.add_argument('--port', type=int, default=5001, help='Port number (default: 5001).')
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="192.168.0.20",
+        help="IP address of the host (default: 192.168.0.20).",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5001,
+        help="Port number (default: 5001).",
+    )
 
     # Parse the command line arguments
     args = vars(parser.parse_args())
 
-    picamera_client = CameraClient(args['host'], int(args['port']))
+    picamera_client = CameraClient(args["host"], int(args["port"]))
 
     # Loop to continuously retrieve and display frames from the video stream
     while True:
@@ -86,12 +110,12 @@ if __name__ == "__main__":
         ret, frame = picamera_client.get_image()
         if ret:
             # Display the frame
-            cv2.imshow('Video Stream', frame)
+            cv2.imshow("Video Stream", frame)
         else:
             print("Error: Unable to read frame from video stream")
 
         # Check for key press to exit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     # Release the video stream and close the OpenCV windows
