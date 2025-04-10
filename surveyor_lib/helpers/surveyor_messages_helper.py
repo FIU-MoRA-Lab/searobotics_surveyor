@@ -128,29 +128,29 @@ def get_coordinates(gga_message):
     return {}
 
 
-def process_propietary_message(propietary_message, value_names, process_fun):
+def process_proprietary_message(proprietary_message, value_names, process_fun):
     """
-    Process the propietary message and convert it into a dictionary with corresponding values.
+    Process the proprietary message and convert it into a dictionary with corresponding values.
 
     Args:
-        propietary_message (str): The propietary message to be parsed.
+        proprietary_message (str): The proprietary message to be parsed.
         value_names (list): The list of value names to map to the message parts.
 
     Returns:
         dict: A dictionary mapping the value names to the corresponding parsed values.
     """
-    if not propietary_message:
-        HELPER_LOGGER.warning("Received empty or None propietary message.")
+    if not proprietary_message:
+        HELPER_LOGGER.warning("Received empty or None proprietary message.")
         return {}
 
     HELPER_LOGGER.debug(
-        "Receiving propietary message: %s",
-        propietary_message,
+        "Receiving proprietary message: %s",
+        proprietary_message,
     )
 
     # Split the message into parts and remove the first and last item (e.g. '$PESAA' and checksum)
     try:
-        message_parts = propietary_message.split(",")[
+        message_parts = proprietary_message.split(",")[
             1:
         ]  # Remove the first part ('$PESAA')
         last_element = message_parts.pop(-1).split("*")[
@@ -159,7 +159,7 @@ def process_propietary_message(propietary_message, value_names, process_fun):
         message_parts.append(last_element)
     except Exception as e:
         HELPER_LOGGER.error(
-            "Error processing propietary message: %s",
+            "Error processing proprietary message: %s",
             e,
         )
         return {}
@@ -209,7 +209,7 @@ def get_attitude(attitude_message):
             'Yaw_rate': 1.5
         }
     """
-    result = process_propietary_message(
+    result = process_proprietary_message(
         attitude_message,
         get_attitude.value_names,
         get_attitude.process_fun,
@@ -259,7 +259,7 @@ def get_command_status(command_message):
         - The `command_dictionary` is used to map symbols (e.g., 'T', 'C', 'G') to human-readable descriptions.
 
     """
-    result = process_propietary_message(
+    result = process_proprietary_message(
         command_message,
         get_command_status.value_names,
         get_command_status.process_fun,

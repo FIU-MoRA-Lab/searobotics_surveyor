@@ -134,7 +134,7 @@ def main(host, port):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="PiCamera Server Script using Flask"
+        description="Camera Server Script using Flask"
     )
 
     # Add arguments with default values

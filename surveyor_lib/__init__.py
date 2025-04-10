@@ -1,2 +1,2 @@
 from . import clients, helpers
-from .surveyor import Surveyor
+from .Surveyor import Surveyor

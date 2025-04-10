@@ -262,7 +262,9 @@ def create_waypoint_mission(df, throttle=20):
     """
     # Start with the PSEAR command
     psear_cmd = "PSEAR,0,000,{},0,000".format(throttle)
-    psear_cmd_with_checksum = f"{psear_cmd}*{compute_nmea_checksum(psear_cmd)}\r\n"
+    psear_cmd_with_checksum = (
+        f"{psear_cmd}*{compute_nmea_checksum(psear_cmd)}\r\n"
+    )
 
     # Generate OIWPL commands from the DataFrame
     oiwpl_cmds = df["nmea_message"].tolist()

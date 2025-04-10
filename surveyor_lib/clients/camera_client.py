@@ -4,9 +4,9 @@ import threading
 import time
 
 import cv2
+from .base_client import BaseClient
 
-
-class CameraClient:
+class CameraClient(BaseClient):
     """
     CameraClient class represents a client to receive video stream from a Camera server.
 
@@ -32,9 +32,8 @@ class CameraClient:
             _current_frame (numpy.ndarray): The current frame captured from the video stream.
             _frame_thread (threading.Thread): Thread that continuously updates the current frame.
         """
-        self.server_ip = server_ip
-        self.server_port = server_port
-        self.server_url = f"http://{server_ip}:{server_port}/video_feed"
+        super().__init__(server_ip, server_port)
+        self.server_url += "/video_feed"
         self.cap = cv2.VideoCapture(self.server_url)
 
         self._current_frame = None
@@ -61,10 +60,8 @@ class CameraClient:
             tuple: A tuple containing a boolean value indicating whether the frame is read successfully
                    and the frame itself.
         """
-        return (
-            self._current_frame is not None,
-            self._current_frame,
-        )
+        return self._current_frame is not None, self._current_frame,
+        
 
     def _image_updater(self):
         """
@@ -102,12 +99,12 @@ if __name__ == "__main__":
     # Parse the command line arguments
     args = vars(parser.parse_args())
 
-    picamera_client = CameraClient(args["host"], int(args["port"]))
+    camera_client = CameraClient(args["host"], int(args["port"]))
 
     # Loop to continuously retrieve and display frames from the video stream
     while True:
         # Read a frame from the video stream
-        ret, frame = picamera_client.get_image()
+        ret, frame = camera_client.get_image()
         if ret:
             # Display the frame
             cv2.imshow("Video Stream", frame)

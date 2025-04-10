@@ -2,9 +2,10 @@ import argparse
 import sys
 
 import requests
+from .base_client import BaseClient
 
 
-class LidarClient:
+class LidarClient(BaseClient):
     """
     LidarClient class represents a client to receive video stream from a Lidar server.
 
@@ -26,9 +27,8 @@ class LidarClient:
             server_port (str): Port number of the server.
             server_url (str): URL of the lidar data feed provided by the server.
         """
-        self.server_ip = server_ip
-        self.server_port = server_port
-        self.server_url = f"http://{server_ip}:{server_port}/data"
+        super().__init__(server_ip, server_port)
+        self.server_url += "/data"
         self._angles = list(range(0, 360))
 
     def get_data(self):

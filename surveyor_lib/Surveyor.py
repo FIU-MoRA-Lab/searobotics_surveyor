@@ -1,5 +1,3 @@
-import csv
-import json
 import logging
 import os
 import socket
@@ -7,7 +5,6 @@ import threading
 import time
 from datetime import datetime
 
-import h5py
 import numpy as np
 from geopy.distance import geodesic
 
@@ -46,6 +43,7 @@ class Surveyor:
             "lidar": {},
         },
         record=True,
+        record_rate = 1.0,
         logger_level=logging.DEBUG,
     ):
         """
@@ -75,27 +73,28 @@ class Surveyor:
         self.host = host
         self.port = port
 
+        self._sensors_to_use = sensors_to_use
         self._state = {}
 
         # Apply default configurations if not provided
-        for sensor in sensors_to_use:
+        for sensor in self._sensors_to_use:
             if sensors_config[sensor]:
                 self.sensors_config[sensor].update(sensors_config[sensor])
 
-        # Initialize sensors based on sensors_to_use
-        if "exo2" in sensors_to_use:
+        # Initialize sensors based on self._sensors_to_use
+        if "exo2" in self._sensors_to_use:
             self.exo2 = clients.Exo2Client(
                 self.sensors_config["exo2"]["exo2_server_ip"],
                 self.sensors_config["exo2"]["exo2_server_port"],
             )
 
-        if "camera" in sensors_to_use:
+        if "camera" in self._sensors_to_use:
             self.camera = clients.CameraClient(
                 self.sensors_config["camera"]["camera_server_ip"],
                 self.sensors_config["camera"]["camera_server_port"],
             )
 
-        if "lidar" in sensors_to_use:
+        if "lidar" in self._sensors_to_use:
             self.lidar = clients.LidarClient(
                 self.sensors_config["lidar"]["lidar_server_ip"],
                 self.sensors_config["lidar"]["lidar_server_port"],
@@ -103,6 +102,7 @@ class Surveyor:
 
         self._parallel_update = True
         self.record = record
+        self.record_rate = int(record_rate)
         hlp.HELPER_LOGGER.setLevel(level=logger_level)
         self._logger = hlp.HELPER_LOGGER
 
@@ -121,21 +121,20 @@ class Surveyor:
             self.socket.settimeout(5)  # Set a timeout for the connection
             self.socket.connect((self.host, self.port))
             self._logger.info("Surveyor connected!")
+
             self._receive_and_update_thread = threading.Thread(
-                target=self._receive_and_update_thread
-            )
+                target=self._receive_and_update
+            )  # Boat's state is received and parsed by an independent thread
             self._receive_and_update_thread.daemon = True
             self._receive_and_update_thread.start()
+
             while not self.get_state():
                 time.sleep(0.1)
             self._logger.info("Update thread online!")
+
             if self.record:
                 self._logger.info("Initializing record thread...")
-                self._recording_thread = threading.Thread(
-                    target=self._save_data_continuously
-                )
-                self._recording_thread.daemon = True
-                self._recording_thread.start()
+                self._save_data_continuously()
             else:
                 self._logger.info("Not recoding sensors...")
 
@@ -149,8 +148,11 @@ class Surveyor:
         """
         Close the connection with the remote server.
         """
-        self._parallel_update = False
+        self._parallel_update = False  # Stop state update (boat IMU)
         self._receive_and_update_thread.join()
+        if hasattr(self, "_data_logger"):
+            self._data_logger.stop()  # Stop HDF5 file logging
+
         self.socket.close()
 
     def send(self, msg):
@@ -198,152 +200,92 @@ class Surveyor:
             self._logger.error(f"Error receiving data - {e}")
             raise
 
-    def _receive_and_update_thread(self):
+    def _receive_and_update(self):
         while self._parallel_update:
             message = self.receive()
             updated_state = hlp.process_surveyor_message(message)
             self._state.update(updated_state)
 
     def _save_data_continuously(self):
-        # Create the 'records' folder in the current working directory (if it doesn't exist)
-        folder_name = "records_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+        """Starts continuous logging of sensor and state data to HDF5 file."""
 
-        records_dir = os.path.join(os.getcwd(), folder_name)
-        if not os.path.exists(records_dir):
-            os.makedirs(records_dir)
+        # Data saved at ../../out/records/<today's  date>.h5
+        filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".h5"
+        records_dir = os.path.join(hlp.OUT_DIR_PATH, "records")
+        os.makedirs(records_dir, exist_ok=True)
 
-        # File paths for saving data inside the 'records' folder
-        image_data_path = os.path.join(
-            records_dir, "image_data.h5"
-        )  # Using HDF5 for image data
-        state_data_path = os.path.join(records_dir, "state_data.csv")
-        lidar_data_path = os.path.join(records_dir, "lidar_data.json")
+        # Initialize and start HDF5 logger
+        filepath = os.path.join(records_dir, filename)      
 
-        # Get image shape from a sample image
-        shape = self.get_image()[1].shape
+        self._data_logger = hlp.HDF5Logger(
+            filepath=filepath,
+            data_getter_func=self.get_data,
+            interval=1/self.record_rate)
+        self._logger.info(f"Started logging to: {filepath}")
+        self._data_logger.start_continuous_logging()
 
-        # Open or create the HDF5 file for storing images
-        with h5py.File(image_data_path, "a") as f:
-            # Create a dataset for images if it doesn't exist
-            if "images" not in f:
-                # Create an empty dataset with an initial shape of (0, *shape)
-                dataset = f.create_dataset(
-                    "images",
-                    (0, *shape),
-                    maxshape=(None, *shape),
-                    dtype=np.uint8,
-                    chunks=(1, *shape),
-                    compression="gzip",
-                    compression_opts=4,
-                )
-            else:
-                dataset = f["images"]
+    def set_thruster_mode(self, thrust, thrust_diff, delay=0.05):
+        """
+        Sets the ASV to thruster mode.
 
-            images_received = 0  # Counter to track the number of images
+        Args:
+            thrust (int): The base thrust value, ranging from -100 to 100.
+                Negative values indicate reverse motion.
+            thrust_diff (int): Differential thrust for steering, ranging from -100 to 100.
+                Negative values indicate counter-clockwise rotation.
+            delay (float, optional): Delay in seconds after sending the command.
+                Defaults to 0.05.
 
-            try:
-                while self.record:
-                    # Get the current state and data
-                    state = self.get_state()
-                    lidar_data = None
-                    image_data = None
-
-                    if hasattr(self, "exo2"):
-                        exo_data = self.get_exo2_data()
-                        state.update(exo_data)
-
-                    if hasattr(self, "lidar"):
-                        distances, angles = self.get_lidar_data()
-                        lidar_data = {
-                            "distances": distances,
-                            "angles": angles,
-                        }
-
-                    if hasattr(self, "camera"):
-                        ret, image = self.get_image()
-                        if ret:
-                            image_data = image
-
-                    # Save state data to CSV
-                    with open(
-                        state_data_path,
-                        mode="a",
-                        newline="",
-                    ) as csv_file:
-                        self._logger.debug(f"Saving state:\n{state}")
-                        fieldnames = list(state.keys())
-                        writer = csv.DictWriter(
-                            csv_file,
-                            fieldnames=fieldnames,
-                        )
-                        if csv_file.tell() == 0:
-                            writer.writeheader()
-                        writer.writerow(state)
-
-                    # Save lidar data to JSON
-                    if lidar_data:
-                        with open(
-                            lidar_data_path,
-                            mode="a",
-                        ) as json_file:
-                            json_file.write(json.dumps(lidar_data) + "\n")
-
-                    # Append image to the HDF5 dataset
-                    if image_data is not None:
-                        # Resize the dataset to accommodate a new image
-                        dataset.resize(
-                            dataset.shape[0] + 1,
-                            axis=0,
-                        )  # Increase the size by 1 along the first dimension
-                        dataset[-1] = (
-                            image_data  # Append the new image to the dataset
-                        )
-                        images_received += 1
-
-                        # Manually flush the data to disk after adding an image
-                        dataset.flush()
-
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                self._logger.info(
-                    "Process interrupted. Flushing data to disk..."
-                )
-                dataset.flush()  # Ensure data is saved to disk on exit
-
-    def set_standby_mode(self):
-        msg = "PSEAC,L,0,0,0,"
-        self.send(msg)
-
-    # Thrust and thrust_diff must be an integer between -100 and 100
-    # negative means backwards/counter_clockwise
-
-    def set_thruster_mode(
-        self, thrust, thrust_diff, delay=0.05
-    ):  # Delay to ensure that the motors spin?
+        Notes:
+            - Both `thrust` and `thrust_diff` are clipped to the range [-70, 70] for safety.
+            - Each of these methods sends a formatted command string to the motor controller.
+        """
         thrust, thrust_diff = np.clip([thrust, thrust_diff], -70, 70)
         msg = f"PSEAC,T,0,{int(thrust)},{int(thrust_diff)},"
         self.send(msg)
         time.sleep(delay)
 
+    def set_standby_mode(self):
+        """Sets the boat to standby mode"""
+        msg = "PSEAC,L,0,0,0,"
+        self.send(msg)
+
     def set_station_keep_mode(self):
+        """Sets the boat to station keep mode"""
         msg = "PSEAC,R,,,,"
         self.send(msg)
 
-    # degrees has to be an integer between 0 and 360
     def set_heading_mode(self, thrust, degrees):
-        thrust, degrees = np.clip([thrust, degrees], 0, [0, 360])
+        """
+        Sets the ASV to thruster mode.
+
+        Args:
+            thrust (int): The base thrust value, ranging from 0 to 100.
+            degrees (int): Compass heading direction, ranging from 0 to 360
+        Notes:
+            - Both `thrust` and `degrees` are clipped to the range [0, 70], [0, 360] for safety.
+        """
+        thrust, degrees = np.clip([thrust, degrees], 0, [70, 360])
         msg = f"PSEAC,C,{int(degrees)},{int(thrust)},,"
         self.send(msg)
 
     def set_waypoint_mode(self):
+        """Sets the boat to waypoint mode"""
         msg = "PSEAC,W,0,0,0,"
         self.send(msg)
 
     def set_erp_mode(self):
+        """Sets the boat to emergency recovery point mode"""
         msg = "PSEAC,H,0,0,0,"
         self.send(msg)
 
     def start_file_download_mode(self, num_lines):
+        """
+        Sets the ASV to file download mode.
+
+        Args:
+            num_lines (int): The number of lines to be sent to the boat.
+        """
         if num_lines != int(num_lines):
             self._logger.error(
                 "Non integer number of lines. Converting to integer..."
@@ -353,6 +295,7 @@ class Surveyor:
         time.sleep(0.1)
 
     def end_file_download_mode(self):
+        """Finishes the boat's file download mode"""
         msg = "PSEAC,F,000,000,000"
         self.send(msg)
         time.sleep(0.1)
@@ -474,7 +417,8 @@ class Surveyor:
             waypoint (tuple): The waypoint coordinates to be sent.
             erp (list): A list of ERP coordinates.
             throttle (int): The desired throttle value for the boat.
-            tolerance_meters (float): The tolerance distance for the waypoint in meters. If the waypoint is within the margin, it will be loaded only once.
+            tolerance_meters (float): The tolerance distance for the waypoint in meters.
+            If the waypoint is within the margin, it will be loaded only once.
         """
 
         self.send_waypoints([waypoint], erp, throttle)
@@ -502,12 +446,8 @@ class Surveyor:
         Returns:
             Control mode string.
         """
-        # control_mode = None
-        # while not control_mode:
-        #     control_mode = hlp.get_control_mode(self.receive())
-        control_mode = self._state.get("Control Mode", "Unknown")
 
-        return control_mode
+        return self._state.get("Control Mode", "Unknown")
 
     def get_gps_coordinates(self):
         """
@@ -530,14 +470,35 @@ class Surveyor:
            list: A list of float values representing the data from the Exo2 sensor.
         """
 
-        return self.exo2.get_exo2_data()
+        return self.exo2.get_data()
 
-    def get_data(self, keys=["state", "exo2"]):
+    def get_image(self):
+        """
+        Retrieve an image from the camera.
+
+        Returns:
+            tuple: A tuple containing a boolean value indicating whether the frame is read successfully
+                   and the frame itself.
+        """
+        return self.camera.get_image()
+
+    def get_lidar_data(self):
+        """
+        Retrieve the lidar measurements.
+
+        Returns:
+            tuple: A 360 list containing the lidar measurements
+            and a list with their corresponding angles [0-360] degrees.
+        """
+        return self.lidar.get_data()
+    
+    def get_data(self, keys=None):
         """
         Retrieve data based on specified keys using corresponding getter functions.
 
         Args:
-            keys (list, optional): A list of keys indicating the types of data to retrieve. Defaults to ['exo2_data', 'time', 'coordinates'].
+            keys (list, optional): A list of keys indicating the types of data to retrieve. Defaults to ['state'] + self._sensors_to_use i.e. the state
+            and the data from the sensors used.
 
         Returns:
             dict: A dictionary containing the retrieved data for each specified key.
@@ -545,6 +506,9 @@ class Surveyor:
         # Dictionary mapping keys to corresponding getter functions.
         # Must return either a list of values or a dictionary paired by name : value.
         # In the case it returns a list, data_labels dict has to be updated with a list of names
+        
+        keys = keys or (['state'] + self._sensors_to_use)
+
         getter_functions = {
             "exo2": self.get_exo2_data,  # Dictionary with Exo2 sonde data
             "state": self.get_state,
@@ -569,23 +533,3 @@ class Surveyor:
             data_dict.update(data)
 
         return data_dict
-
-    def get_image(self):
-        """
-        Retrieve an image from the camera.
-
-        Returns:
-            tuple: A tuple containing a boolean value indicating whether the frame is read successfully
-                   and the frame itself.
-        """
-        return self.camera.get_image()
-
-    def get_lidar_data(self):
-        """
-        Retrieve the lidar measurements.
-
-        Returns:
-            tuple: A 360 list containing the lidar measurements
-                and a list with their corresponding angles [0-360] degrees.
-        """
-        return self.lidar.get_data()

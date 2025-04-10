@@ -2,6 +2,7 @@ import argparse
 import sys
 
 import requests
+from .base_client import BaseClient
 
 PARAMS_DICT = {
     1: "Temperature (C)",  # In degrees
@@ -72,7 +73,7 @@ PARAMS_DICT = {
 }
 
 
-class Exo2Client:
+class Exo2Client(BaseClient):
     def __init__(
         self,
         server_ip="192.168.0.68",
@@ -85,9 +86,8 @@ class Exo2Client:
             server_ip (str, optional): The IP address of the server. Defaults to "192.168.0.68".
             server_port (str, optional): The port number of the server. Defaults to "5000".
         """
-        self.server_ip = server_ip
-        self.server_port = server_port
-        self.server_url = f"http://{server_ip}:{server_port}/data"
+        super().__init__(server_ip, server_port)
+        self.server_url += "/data"
         self.initialize_server_serial_connection()
         self.exo2_params = self.get_exo2_params()
 
@@ -126,7 +126,7 @@ class Exo2Client:
             print(f"Error fetching data from server: {e}")
             return None
 
-    def get_exo2_data(self):
+    def get_data(self):
         """
         Get data from the Exo2 sensor.
 

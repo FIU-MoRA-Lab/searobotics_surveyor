@@ -12,10 +12,10 @@ This is a lightweight version of the full [FIU MoRA Lab Surveyor Automation Repo
 - [Installation and Set-up](#installation-and-set-up)
 - [Usage](#usage)
 - [Features](#features)
+- [Documentation](#-package-documentation)
 - [Troubleshooting](#troubleshooting)
 - [Related Links](#related-links)
 
----
 
 ## 🔧 Prerequisites
 
@@ -117,7 +117,18 @@ Make sure to start:
 1.`exo2_server.py` on the DAC.
 2.`camera_server.py` and `lidar_server.py` on the Pi.
 
----
+# 📄 Package Documentation
+
+For more detailed information, refer to the following linked markdown files:
+
+- [Surveyor Class](surveyor_lib/docs/Surveyor.md)
+- [Helpers](surveyor_lib/ddocs/helpers.md)
+- [Sensor Clients](surveyor_lib/docs/sensor_clients.md)
+- [Sensor Servers](surveyor_lib/docs/sensor_servers.md)
+- [Testing](surveyor_lib/docs/debugging_tools.md)
+
+
+
 # Troubleshooting
 Coming soon. Common issues will be documented here.
 
