@@ -195,8 +195,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--host",
         type=str,
-        default="172.17.0.1",
-        help="Host IP (default: 172.17.0.1).",
+        default="192.168.0.20",
+        help="Host IP (default: 192.168.0.20).",
     )
     parser.add_argument(
         "--port",

@@ -4,7 +4,9 @@ import threading
 import time
 
 import cv2
+
 from .base_client import BaseClient
+
 
 class CameraClient(BaseClient):
     """
@@ -37,22 +39,22 @@ class CameraClient(BaseClient):
         self.cap = cv2.VideoCapture(self.server_url)
 
         self._current_frame = None
-        self._frame_thread = threading.Thread(target=self._image_updater)
-        self._frame_thread.daemon = True  # Daemonize the thread so it will exit when the main program exits
-        self._frame_thread.start()
-        time.sleep(0.1)  # Give some time to update current images
 
-        if not self.cap.isOpened():
+        if self.cap.isOpened():
+            self._frame_thread = threading.Thread(target=self._image_updater)
+            self._frame_thread.daemon = True  # Daemonize the thread so it will exit when the main program exits
+            self._frame_thread.start()
+            time.sleep(0.1)  # Give some time to update current images
+            print("Camera connected. Receiving stream!")
+        else:
             print(
                 f"""Error: Unable to open video stream.
                       Check your camera configuration.
                       Ensure picamera_server.py or picamera_server_flask.py are running on the Pi.
                       You should see the video at {self.server_url}"""
             )
-        else:
-            print("Camera connected. Receiving stream!")
 
-    def get_image(self):
+    def get_data(self):
         """
         Retrieves the most recent frame from the video stream.
 
@@ -60,8 +62,10 @@ class CameraClient(BaseClient):
             tuple: A tuple containing a boolean value indicating whether the frame is read successfully
                    and the frame itself.
         """
-        return self._current_frame is not None, self._current_frame,
-        
+        return (
+            self._current_frame is not None,
+            self._current_frame,
+        )
 
     def _image_updater(self):
         """
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     # Loop to continuously retrieve and display frames from the video stream
     while True:
         # Read a frame from the video stream
-        ret, frame = camera_client.get_image()
+        ret, frame = camera_client.get_data()
         if ret:
             # Display the frame
             cv2.imshow("Video Stream", frame)

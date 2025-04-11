@@ -71,7 +71,7 @@ def save(data, post_fix="", dir_path=None):
 
 def process_gga_and_save_data(
     surveyor_connection,
-    data_keys=None,
+    data_keys=["state", "exo2"],
     post_fix="",
     delay=1.0,
     dir_path=None,
@@ -89,6 +89,13 @@ def process_gga_and_save_data(
     Returns:
         surveyor_data (dict): Dictionary with the data acquired by the boat (see Surveyor.get_data method).
     """
+    data_keys = (
+        [key for key in data_keys if key in ["state", "exo2"]]
+        if data_keys is not None
+        else ["state", "exo2"]
+    )
+    if not data_keys:
+        raise ValueError("No valid data keys provided.")
     surveyor_data = surveyor_connection.get_data(data_keys)
 
     # Save the data to a CSV file

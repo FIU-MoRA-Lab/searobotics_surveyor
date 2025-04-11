@@ -7,13 +7,14 @@ This is a lightweight version of the full [FIU MoRA Lab Surveyor Automation Repo
 ---
 
 ## 📚 Table of Contents
-- [Prerequisites](#prerequisites)
-- [Repository Structure](#repository-structure)
-- [Installation and Set-up](#installation-and-set-up)
+- [Prerequisites](#-prerequisites)
+- [Repository Structure](#package-contents)
+- [Installation and Set-up](#️⚙️-installation-and-set-up)
 - [Usage](#usage)
-- [Features](#features)
-- [Documentation](#-package-documentation)
+- [Media](#media)
+- [Documentation](#📄-package-documentation)
 - [Troubleshooting](#troubleshooting)
+- [Contributing](#🤝-contributing)
 - [Related Links](#related-links)
 
 
@@ -59,7 +60,7 @@ Files intended to test specific capabilities; they have no use in the library it
 2. Copy `exo2_server.py` and `requirements_exo2_dac.txt` to the desktop.
 3. Install dependencies:
 ```bash
-   pip3 install -r requirements_exo2_dac.txt
+    pip3 install -r requirements_exo2_dac.txt
 ```
 
 ## 3. Raspberry Pi set-up
@@ -68,7 +69,7 @@ Files intended to test specific capabilities; they have no use in the library it
 
 From the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may the Manual set-up section):
 ```bash
-    python3 setup_pi.py
+     python3 setup_pi.py
 ```
 
 ### 3.2 Manual set-up
@@ -79,7 +80,7 @@ From the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's
 4. Install Python and the necessary packages. To do so run
 
 ```bash
-    pip3 install -r requirements_camera.txt
+     pip3 install -r requirements_camera.txt
 ```
 
 # Media
@@ -123,11 +124,29 @@ For more detailed information, refer to the following linked markdown files:
 
 - [Surveyor Class](surveyor_lib/docs/Surveyor.md)
 - [Helpers](surveyor_lib/ddocs/helpers.md)
-- [Sensor Clients](surveyor_lib/docs/sensor_clients.md)
-- [Sensor Servers](surveyor_lib/docs/sensor_servers.md)
-- [Testing](surveyor_lib/docs/debugging_tools.md)
+- [Sensor Clients](surveyor_lib/docs/clients.md)
+- [Sensor Servers](surveyor_lib/docs/servers.md)
+- [Testing](surveyor_lib/docs/tests.md)
 
+# 🤝 Contributing
 
+We welcome contributions to improve this repository! To ensure consistency and maintain code quality, please follow these guidelines:
+
+1. Before committing your changes, run the following commands to format and lint the code:
+     ```bash
+     black .
+     isort .
+     flake8 .
+     ```
+
+2. Run the test suite to verify that your changes do not break existing functionality:
+     ```bash
+     pytest surveyor_lib/tests --verbose
+     ```
+
+3. Push your changes with a clear description of the changes and the problem or feature you solved.
+
+Thank you for contributing!
 
 # Troubleshooting
 Coming soon. Common issues will be documented here.
@@ -135,4 +154,5 @@ Coming soon. Common issues will be documented here.
 # Related Links
 - EXO2 Multiparameter Sonde (https://www.ysi.com/exo2)
 - Sea Robotics Surveyor (https://www.searobotics.com/products/autonomous-surface-vehicles/sr-surveyor-class)
+
 

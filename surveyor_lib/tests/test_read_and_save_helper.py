@@ -30,7 +30,7 @@ def test_process_gga_and_save_data(tmp_path):
 
     result = hlp.process_gga_and_save_data(
         mock_surveyor,
-        data_keys=["Latitude", "Longitude", "mode", "ret"],
+        data_keys=None,
         delay=0.1,
         post_fix="_gps",
         dir_path=tmp_path,
@@ -46,6 +46,7 @@ def test_process_gga_and_save_data(tmp_path):
         reader = csv.DictReader(f)
         first_row = next(reader)
 
+    # print(first_row)
     expected = result  # strings from CSV
     for key in result.keys():
         assert first_row[key] in (expected[key], str(expected[key]))

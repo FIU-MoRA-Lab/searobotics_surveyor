@@ -10,10 +10,17 @@ A class for managing the Sea Robotics Surveyor ASV, supporting client connection
 Initialize the `Surveyor` object with configuration for sensors and server.
 
 #### Arguments:
-- `host` (`str`): Server IP address (default: `192.168.0.50`)
-- `port` (`int`): Server port (default: `8003`)
-- `sensors_to_use` (`list[str]`): Sensors to initialize (`exo2`, `camera`, `lidar`)
-- `sensors_config` (`dict`): Sensor-specific configuration dicts
+- `host` (`str`): Server IP address (default: `192.168.0.50`).
+- `port` (`int`): Server port (default: `8003`).
+- `sensors_to_use` (`list[str]`): Sensors to initialize (`exo2`, `camera`, `lidar`). Defaults to `["exo2", "camera", "lidar"]`.
+- `sensors_config` (`dict`): Sensor-specific configuration dicts. Defaults to:
+  ```python
+  {
+      "exo2": {"exo2_server_ip": "192.168.0.68", "exo2_server_port": 5000},
+      "camera": {"camera_server_ip": "192.168.0.20", "camera_server_port": 5001},
+      "lidar": {"lidar_server_ip": "192.168.0.20", "lidar_server_port": 5002},
+  }
+  ```
 - `record` (`bool`): Whether to start a recording boat's data into a HDF5 file. It records the state plus the sensors tated in `sensors_to_use`
 - `record_rate` (`int`): Record frequency in Hz (default: `1`)
 - `logger_level` (`logging.LEVEL`): Logging level

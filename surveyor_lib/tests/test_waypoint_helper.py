@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pandas as pd
 
 from surveyor_lib.helpers import (

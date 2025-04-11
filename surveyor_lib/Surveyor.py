@@ -11,39 +11,28 @@ from geopy.distance import geodesic
 from . import clients
 from . import helpers as hlp
 
+VALID_CONTROL_MODES = {
+    "Waypoint": ["thrust"],
+    "Standby": [],
+    "Thruster": ["thrust", "thrust_diff", "delay"],
+    "Heading": ["thrust", "degrees"],
+    "Go To ERP": [],
+    "Station Keep": [],
+    "Start File Download": ["num_lines"],
+    "End File Download": [],
+}
+
 
 class Surveyor:
-    sensors_config = {
-        "exo2": {
-            "exo2_server_ip": "192.168.0.68",
-            "exo2_server_port": 5000,
-        },
-        "camera": {
-            "camera_server_ip": "192.168.0.20",
-            "camera_server_port": 5001,
-        },
-        "lidar": {
-            "lidar_server_ip": "192.168.0.20",
-            "lidar_server_port": 5002,
-        },
-    }
 
     def __init__(
         self,
         host="192.168.0.50",
         port=8003,
-        sensors_to_use=[
-            "exo2",
-            "camera",
-            "lidar",
-        ],
-        sensors_config={
-            "exo2": {},
-            "camera": {},
-            "lidar": {},
-        },
+        sensors_to_use=None,
+        sensors_config=None,
         record=True,
-        record_rate = 1.0,
+        record_rate=1.0,
         logger_level=logging.DEBUG,
     ):
         """
@@ -53,10 +42,10 @@ class Surveyor:
             host (str, optional): The IP address of the main server to connect to. Defaults to '192.168.0.50'.
             port (int, optional): The port number of the main server. Defaults to 8003.
             sensors_to_use (list of str, optional): List of sensor types to initialize (e.g., 'exo2', 'camera' or 'lidar').
-                                                    Defaults to ['exo2', 'camera', 'lidar'].
+                                                    Defaults to None, i.e. using all sensors.
             sensors_config (dict, optional): A dictionary for configuring each sensor. If a sensor's configuration is empty,
                                             it will be populated with default values. Defaults to
-                                            {'exo2': {}, 'camera': {}, 'lidar' :{}}.
+                                            None, i.e. taking Sensor Config Defaults.
 
         Sensor Config Defaults:
             - 'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000}
@@ -73,32 +62,47 @@ class Surveyor:
         self.host = host
         self.port = port
 
+        if sensors_to_use is None:
+            sensors_to_use = ["exo2", "camera", "lidar"]
+
+        if sensors_config is None:
+            sensors_config = {
+                "exo2": {
+                    "exo2_server_ip": "192.168.0.68",
+                    "exo2_server_port": 5000,
+                },
+                "camera": {
+                    "camera_server_ip": "192.168.0.20",
+                    "camera_server_port": 5001,
+                },
+                "lidar": {
+                    "lidar_server_ip": "192.168.0.20",
+                    "lidar_server_port": 5002,
+                },
+            }
+
         self._sensors_to_use = sensors_to_use
+        self._sensors_config = sensors_config
         self._state = {}
 
         # Apply default configurations if not provided
         for sensor in self._sensors_to_use:
             if sensors_config[sensor]:
-                self.sensors_config[sensor].update(sensors_config[sensor])
+                self._sensors_config[sensor].update(sensors_config[sensor])
 
+        self.sensors = {}
         # Initialize sensors based on self._sensors_to_use
-        if "exo2" in self._sensors_to_use:
-            self.exo2 = clients.Exo2Client(
-                self.sensors_config["exo2"]["exo2_server_ip"],
-                self.sensors_config["exo2"]["exo2_server_port"],
-            )
-
-        if "camera" in self._sensors_to_use:
-            self.camera = clients.CameraClient(
-                self.sensors_config["camera"]["camera_server_ip"],
-                self.sensors_config["camera"]["camera_server_port"],
-            )
-
-        if "lidar" in self._sensors_to_use:
-            self.lidar = clients.LidarClient(
-                self.sensors_config["lidar"]["lidar_server_ip"],
-                self.sensors_config["lidar"]["lidar_server_port"],
-            )
+        sensor_clients = {
+            "exo2": clients.Exo2Client,
+            "camera": clients.CameraClient,
+            "lidar": clients.LidarClient,
+        }
+        for sensor in self._sensors_to_use:
+            if sensor in sensor_clients:
+                self.sensors[sensor] = sensor_clients[sensor](
+                    self._sensors_config[sensor][f"{sensor}_server_ip"],
+                    self._sensors_config[sensor][f"{sensor}_server_port"],
+                )
 
         self._parallel_update = True
         self.record = record
@@ -172,12 +176,12 @@ class Surveyor:
         except socket.error as e:
             self._logger.error(f"Error sending message - {e}")
 
-    def receive(self, bytes=2048):
+    def receive(self, num_bytes=2048):
         """
         Receive data from the remote server.
 
         Args:
-            bytes (int, optional): The maximum number of bytes to receive. Default is 4096.
+            num_bytes (int, optional): The maximum number of bytes to receive. Default is 4096.
 
         Returns:
             str: The received data as a string, or an empty string if no data was received.
@@ -189,7 +193,7 @@ class Surveyor:
         """
 
         try:
-            data = self.socket.recv(bytes)
+            data = self.socket.recv(num_bytes)
             if not data:
                 raise ConnectionError("Connection closed by the server.")
             return data.decode("utf-8")
@@ -215,12 +219,13 @@ class Surveyor:
         os.makedirs(records_dir, exist_ok=True)
 
         # Initialize and start HDF5 logger
-        filepath = os.path.join(records_dir, filename)      
+        filepath = os.path.join(records_dir, filename)
 
         self._data_logger = hlp.HDF5Logger(
             filepath=filepath,
             data_getter_func=self.get_data,
-            interval=1/self.record_rate)
+            interval=1 / self.record_rate,
+        )
         self._logger.info(f"Started logging to: {filepath}")
         self._data_logger.start_continuous_logging()
 
@@ -305,21 +310,26 @@ class Surveyor:
         Set the control mode for the vehicle.
 
         Args:
-            mode (str): The control mode to set. Possible values are:
-                - "Waypoint": Set the waypoint mode with the provided thrust.
-                - "Standby": Set the standby mode.
-                - "Thruster": Set the thruster mode with the provided thrust and thrust_diff.
-                - "Heading": Set the heading mode with the provided thrust and degrees.
-                - "Go To ERP": Set the ERP (Emergency Recovery Point) mode.
-                - "Station Keep": Set the station keeping mode.
-                - "Start File Download": Start the file download mode with the provided num_lines.
-                - "End File Download": End the file download mode.
+            mode (str): The control mode to set.
             **args: Additional arguments required for specific modes.
-                For "Waypoint" mode: thrust (float)
-                For "Thruster" mode: thrust (float), thrust_diff (float), delay (float)
-                For "Heading" mode: thrust (float), degrees (float)
-                For "Start File Download" mode: num_lines (int)
         """
+        if mode not in VALID_CONTROL_MODES:
+            self._logger.error(f"Invalid control mode: '{mode}'")
+            raise ValueError(
+                f"Invalid control mode: '{mode}'. "
+                f"Valid modes are: {list(VALID_CONTROL_MODES.keys())}"
+            )
+
+        required_args = VALID_CONTROL_MODES[mode]
+        missing_args = [arg for arg in required_args if arg not in args]
+        if missing_args:
+            self._logger.error(
+                f"Missing arguments for mode '{mode}': {missing_args}"
+            )
+            raise KeyError(
+                f"Missing arguments for mode '{mode}': {missing_args}"
+            )
+
         try:
             if mode == "Waypoint":
                 self.set_waypoint_mode(args["thrust"])
@@ -327,15 +337,10 @@ class Surveyor:
                 self.set_standby_mode()
             elif mode == "Thruster":
                 self.set_thruster_mode(
-                    args["thrust"],
-                    args["thrust_diff"],
-                    args["delay"],
+                    args["thrust"], args["thrust_diff"], args["delay"]
                 )
             elif mode == "Heading":
-                self.set_heading_mode(
-                    args["thrust"],
-                    args["degrees"],
-                )
+                self.set_heading_mode(args["thrust"], args["degrees"])
             elif mode == "Go To ERP":
                 self.set_erp_mode()
             elif mode == "Station Keep":
@@ -344,10 +349,6 @@ class Surveyor:
                 self.start_file_download_mode(args["num_lines"])
             elif mode == "End File Download":
                 self.end_file_download_mode()
-            else:
-                self._logger.error(f"Control mode '{mode}' not implemented")
-        except KeyError as e:
-            self._logger.error(f"Missing argument for mode '{mode}': {e}")
         except Exception as e:
             self._logger.error(f"Error executing control mode '{mode}': {e}")
 
@@ -470,7 +471,7 @@ class Surveyor:
            list: A list of float values representing the data from the Exo2 sensor.
         """
 
-        return self.exo2.get_data()
+        return self.sensors["exo2"].get_data()
 
     def get_image(self):
         """
@@ -480,7 +481,7 @@ class Surveyor:
             tuple: A tuple containing a boolean value indicating whether the frame is read successfully
                    and the frame itself.
         """
-        return self.camera.get_image()
+        return self.sensors["camera"].get_data()
 
     def get_lidar_data(self):
         """
@@ -490,8 +491,8 @@ class Surveyor:
             tuple: A 360 list containing the lidar measurements
             and a list with their corresponding angles [0-360] degrees.
         """
-        return self.lidar.get_data()
-    
+        return self.sensors["lidar"].get_data()
+
     def get_data(self, keys=None):
         """
         Retrieve data based on specified keys using corresponding getter functions.
@@ -506,8 +507,8 @@ class Surveyor:
         # Dictionary mapping keys to corresponding getter functions.
         # Must return either a list of values or a dictionary paired by name : value.
         # In the case it returns a list, data_labels dict has to be updated with a list of names
-        
-        keys = keys or (['state'] + self._sensors_to_use)
+
+        keys = keys or (["state"] + self._sensors_to_use)
 
         getter_functions = {
             "exo2": self.get_exo2_data,  # Dictionary with Exo2 sonde data
