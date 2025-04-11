@@ -67,7 +67,7 @@ Files intended to test specific capabilities; they have no use in the library it
 
 ### 3.1 Easy set-up
 
-From the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may the Manual set-up section):
+From the `requirements` folder copy the file `setup_pi.py` to the raspberry pi's desktop and execute it by running (if everything is successful you may skip the Manual set-up section):
 ```bash
      python3 setup_pi.py
 ```
@@ -141,7 +141,7 @@ We welcome contributions to improve this repository! To ensure consistency and m
 
 2. Run the test suite to verify that your changes do not break existing functionality:
      ```bash
-     pytest surveyor_lib/tests --verbose
+     pytest tests --verbose
      ```
 
 3. Push your changes with a clear description of the changes and the problem or feature you solved.
