@@ -122,7 +122,7 @@ Make sure to start:
 
 For more detailed information, refer to the following linked markdown files:
 
-- [Surveyor Class](surveyor_lib/docs/Surveyor.md)
+- [Surveyor Class](surveyor_lib/docs/surveyor.md)
 - [Helpers](surveyor_lib/ddocs/helpers.md)
 - [Sensor Clients](surveyor_lib/docs/clients.md)
 - [Sensor Servers](surveyor_lib/docs/servers.md)
