@@ -221,7 +221,7 @@ class Surveyor:
         # Initialize and start HDF5 logger
         filepath = os.path.join(records_dir, filename)
 
-        self._data_logger = hlp.HDF5Logger(
+        self._data_logger = hlp.hdf5_logger(
             filepath=filepath,
             data_getter_func=self.get_data,
             interval=1 / self.record_rate,

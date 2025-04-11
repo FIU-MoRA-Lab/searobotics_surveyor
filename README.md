@@ -37,10 +37,10 @@ Each sensor implements a structure server-client to broadcast its data. The clie
 Each sensor implements a structure server-client to broadcast its data. The clients manage the data as their unique class to be easily accesible by the user.
 ## `surveyor_lib/servers` 
 As said before each client has a server counterpart in charge of retreiving the information from the sensor and broadcasting it into an ip:port address.
-## `debugging`
-Files intended to test specific capabilities; they have no use in the library itself. In the future, they will be deprecated.
+## `tests`
+Files intended to test specific capabilities; they have no use in the library itself. 
 ## `requirements`
-.txt files containing the essential Python packages to be installed in order to execute any file contained in the `servers` folder.  
+.txt files containing the essential Python packages to be installed in order to execute any file contained in the library.  
 
 ## ⚙️ Installation and Set-up
 

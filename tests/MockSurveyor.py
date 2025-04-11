@@ -1,6 +1,6 @@
 import numpy as np
 
-from surveyor_lib.Surveyor import Surveyor
+from surveyor_lib.surveyor import Surveyor
 
 
 class MockSurveyor(Surveyor):
