@@ -68,6 +68,9 @@ class HDF5Logger:
                 dtype_fields.append((key, "float32"))
             elif isinstance(value, np.ndarray):
                 dtype_fields.append((key, value.dtype.str, value.shape))
+            elif isinstance(value, list):
+                value = np.array(value)
+                dtype_fields.append((key, value.dtype.str, value.shape))
             elif isinstance(value, str):
                 dtype_fields.append((key, "S10", (1,)))
             else:

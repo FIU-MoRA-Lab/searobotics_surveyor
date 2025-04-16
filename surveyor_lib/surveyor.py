@@ -66,23 +66,25 @@ class Surveyor:
             sensors_to_use = ["exo2", "camera", "lidar"]
 
         if sensors_config is None:
-            sensors_config = {
-                "exo2": {
-                    "exo2_server_ip": "192.168.0.68",
-                    "exo2_server_port": 5000,
-                },
-                "camera": {
-                    "camera_server_ip": "192.168.0.20",
-                    "camera_server_port": 5001,
-                },
-                "lidar": {
-                    "lidar_server_ip": "192.168.0.20",
-                    "lidar_server_port": 5002,
-                },
-            }
+            sensors_config = {}
+
+        self._sensors_config = {
+            "exo2": {
+                "exo2_server_ip": "192.168.0.68",
+                "exo2_server_port": 5000,
+            },
+            "camera": {
+                "camera_server_ip": "192.168.0.20",
+                "camera_server_port": 5001,
+            },
+            "lidar": {
+                "lidar_server_ip": "192.168.0.20",
+                "lidar_server_port": 5002,
+            },
+        }
 
         self._sensors_to_use = sensors_to_use
-        self._sensors_config = sensors_config
+        # self._sensors_config = sensors_config
         self._state = {}
 
         # Apply default configurations if not provided
@@ -215,13 +217,13 @@ class Surveyor:
 
         # Data saved at ../../out/records/<today's  date>.h5
         filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".h5"
-        records_dir = os.path.join(hlp.OUT_DIR_PATH, "records")
+        records_dir = os.path.join(hlp.DEFAULT_OUT_DIR_PATH0, "records")
         os.makedirs(records_dir, exist_ok=True)
 
         # Initialize and start HDF5 logger
         filepath = os.path.join(records_dir, filename)
 
-        self._data_logger = hlp.hdf5_logger(
+        self._data_logger = hlp.HDF5Logger(
             filepath=filepath,
             data_getter_func=self.get_data,
             interval=1 / self.record_rate,

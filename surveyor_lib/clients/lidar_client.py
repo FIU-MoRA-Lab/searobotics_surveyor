@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     angles = np.deg2rad(np.arange(0, 360, 1))
     while True:
-        distances = lidar_client.get_data()
+        distances, _ = lidar_client.get_data()
         scatter.set_offsets(np.c_[angles, distances])  # Update the plot
         plt.draw()  # Refresh the plot
         plt.pause(0.01)
