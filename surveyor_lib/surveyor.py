@@ -89,7 +89,7 @@ class Surveyor:
 
         # Apply default configurations if not provided
         for sensor in self._sensors_to_use:
-            if sensors_config[sensor]:
+            if sensors_config.get(sensor):
                 self._sensors_config[sensor].update(sensors_config[sensor])
 
         self.sensors = {}
@@ -217,7 +217,7 @@ class Surveyor:
 
         # Data saved at ../../out/records/<today's  date>.h5
         filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".h5"
-        records_dir = os.path.join(hlp.DEFAULT_OUT_DIR_PATH0, "records")
+        records_dir = os.path.join(hlp.DEFAULT_OUT_DIR_PATH, "records")
         os.makedirs(records_dir, exist_ok=True)
 
         # Initialize and start HDF5 logger
@@ -334,7 +334,7 @@ class Surveyor:
 
         try:
             if mode == "Waypoint":
-                self.set_waypoint_mode(args["thrust"])
+                self.set_waypoint_mode()
             elif mode == "Standby":
                 self.set_standby_mode()
             elif mode == "Thruster":
@@ -427,7 +427,7 @@ class Surveyor:
         self.send_waypoints([waypoint], erp, throttle)
         dist = geodesic(waypoint, self.get_gps_coordinates()).meters
         self._logger.info(
-            f"Headding to waypoint {waypoint} located at {dist:.2f} meters with throttle {throttle}"
+            f"Heading to waypoint {waypoint} located at {dist:.2f} meters with throttle {throttle}"
         )
         self.set_waypoint_mode()
         while (
@@ -528,10 +528,16 @@ class Surveyor:
 
         # Iterate over specified keys and retrieve data using corresponding getter functions
         for key in keys:
+            if key not in getter_functions:
+                self._logger.error(f"Invalid key '{key}' in getter_functions.")
+                continue
             data = getter_functions[key]()
             if isinstance(data, float):
                 data = [data]
-            if not isinstance(data, dict):
+            if key in data_labels and not isinstance(data, dict):
+                if len(data_labels[key]) != len(data):
+                    self._logger.error(f"Mismatch in lengths for key '{key}': {len(data_labels[key])} labels vs {len(data)} data.")
+                    continue
                 data = dict(zip(data_labels[key], data))
             data_dict.update(data)
 
