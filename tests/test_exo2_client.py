@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-
+import requests_mock
 from surveyor_lib.clients.exo2_client import Exo2Client
 
 
@@ -34,7 +34,7 @@ def test_get_data_from_command_mocked(
     assert response == "101 202 303"
 
 
-def test__get_data_mocked(requests_mock, exo2_client_with_mock_params):
+def test_get_data_mocked(requests_mock, exo2_client_with_mock_params):
     url = "http://127.0.0.1:5000/data"
     requests_mock.get(url, text="1.0 2.0 3.0")
 

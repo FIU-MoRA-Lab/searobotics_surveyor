@@ -46,6 +46,9 @@ class Surveyor:
             sensors_config (dict, optional): A dictionary for configuring each sensor. If a sensor's configuration is empty,
                                             it will be populated with default values. Defaults to
                                             None, i.e. taking Sensor Config Defaults.
+            record (bool, optional): Whether to record data to HDF5. Defaults to True.
+            record_rate (float, optional): Logging rate in Hz (records per second). Defaults to 1.0.
+            logger_level (int, optional): Logging level (e.g., logging.INFO). Defaults to logging.INFO.
 
         Sensor Config Defaults:
             - 'exo2': {'exo2_server_ip': '192.168.0.68', 'exo2_server_port': 5000}
@@ -155,7 +158,8 @@ class Surveyor:
         Close the connection with the remote server.
         """
         self._parallel_update = False  # Stop state update (boat IMU)
-        self._receive_and_update_thread.join()
+        if hasattr(self, "_receive_and_update_thread"):
+            self._receive_and_update_thread.join()
         if hasattr(self, "_data_logger"):
             self._data_logger.stop()  # Stop HDF5 file logging
 
@@ -248,7 +252,8 @@ class Surveyor:
             - Each of these methods sends a formatted command string to the motor controller.
         """
         thrust, thrust_diff = np.clip([thrust, thrust_diff], -70, 70)
-        msg = f"PSEAC,T,0,{int(thrust)},{int(thrust_diff)},"
+        thrust, thrust_diff = int(thrust), int(thrust_diff)
+        msg = f"PSEAC,T,0,{thrust},{thrust_diff},"
         self.send(msg)
         time.sleep(delay)
 
@@ -272,8 +277,9 @@ class Surveyor:
         Notes:
             - Both `thrust` and `degrees` are clipped to the range [0, 70], [0, 360] for safety.
         """
-        thrust, degrees = np.clip([thrust, degrees], 0, [70, 360])
-        msg = f"PSEAC,C,{int(degrees)},{int(thrust)},,"
+        thrust, degrees = np.clip([thrust, degrees], [0, 0], [70, 360])
+        thrust, degrees = int(thrust), int(degrees)
+        msg = f"PSEAC,C,{degrees},{thrust},,"
         self.send(msg)
 
     def set_waypoint_mode(self):
@@ -539,6 +545,9 @@ class Surveyor:
                     self._logger.error(f"Mismatch in lengths for key '{key}': {len(data_labels[key])} labels vs {len(data)} data.")
                     continue
                 data = dict(zip(data_labels[key], data))
-            data_dict.update(data)
+            if isinstance(data, dict):
+                data_dict.update(data)
+            else:
+                data_dict[key] = data
 
         return data_dict

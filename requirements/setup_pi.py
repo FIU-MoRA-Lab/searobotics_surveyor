@@ -18,10 +18,11 @@ virtualenv_path = (
 )
 bashrc_script = f"{home_dir}/.bashrc"  # The .bashrc file
 
+servers_url_path = f'{base_git_repo_url}/surveyor_lib/servers'
 python_scripts_urls = [
-    f"{base_git_repo_url}/servers/camera_server.py",
-    f"{base_git_repo_url}/servers/lidar_server.py",
-    f"{base_git_repo_url}/servers/exo2_server.py",
+    f"{servers_url_path}/camera_server.py",
+    f"{servers_url_path}/lidar_server.py",
+    f"{servers_url_path}/exo2_server.py",
 ]
 # Add more script URLs here as needed
 python_scripts = [
@@ -179,7 +180,7 @@ def compile_lidar_package():
 def set_static_ip():
     print("Setting static IP address...")
     subprocess.run(
-        "sudo nmcli con mod 'Wired connection 1' ipv4.method manual ipv4.addr 192.168.1.20/24",
+        "sudo nmcli con mod 'Wired connection 1' ipv4.method manual ipv4.addr 192.168.0.20/24",
         shell=True,
         check=True,
     )
