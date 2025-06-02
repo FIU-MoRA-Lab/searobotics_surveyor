@@ -33,7 +33,7 @@ class Surveyor:
         sensors_config=None,
         record=True,
         record_rate=1.0,
-        logger_level=logging.DEBUG,
+        logger_level=logging.INFO,
     ):
         """
         Initialize the Surveyor object with server connection details and sensor configurations.
