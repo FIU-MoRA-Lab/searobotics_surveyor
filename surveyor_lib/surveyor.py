@@ -115,7 +115,7 @@ class Surveyor:
         """
         sensors = {}
         for sensor in self._sensors_to_use:
-            if sensor in list(self.SENSOR_CLIENTS.keys()):
+            if sensor in self.SENSOR_CLIENTS:
                 client_cls = self.SENSOR_CLIENTS[sensor]
                 ip = self._sensors_config[sensor]["server_ip"]
                 port = self._sensors_config[sensor]["server_port"]
