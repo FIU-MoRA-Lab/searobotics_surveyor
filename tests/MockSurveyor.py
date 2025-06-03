@@ -17,6 +17,12 @@ class MockSurveyor(Surveyor):
         kwargs["host"] = "localhost"
         kwargs["port"] = 1234
         kwargs["sensors_to_use"] = []
+        kwargs["sensors_config"] = {
+            "exo2": {"server_ip": "0.0.0.0", "server_port": 5000},
+            "camera": {"server_ip": "0.0.0.0", "server_port": 5001},
+            "lidar": {"server_ip": "0.0.0.0", "server_port": 5002},
+        }
+
         super().__init__(*args, **kwargs)
 
     def get_state(self):

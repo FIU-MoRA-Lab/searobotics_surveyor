@@ -11,19 +11,31 @@ from geopy.distance import geodesic
 from . import clients
 from . import helpers as hlp
 
-VALID_CONTROL_MODES = {
-    "Waypoint": ["thrust"],
-    "Standby": [],
-    "Thruster": ["thrust", "thrust_diff", "delay"],
-    "Heading": ["thrust", "degrees"],
-    "Go To ERP": [],
-    "Station Keep": [],
-    "Start File Download": ["num_lines"],
-    "End File Download": [],
-}
-
 
 class Surveyor:
+
+    VALID_CONTROL_MODES = {
+        "Waypoint": ["thrust"],
+        "Standby": [],
+        "Thruster": ["thrust", "thrust_diff", "delay"],
+        "Heading": ["thrust", "degrees"],
+        "Go To ERP": [],
+        "Station Keep": [],
+        "Start File Download": ["num_lines"],
+        "End File Download": [],
+    }
+
+    DEFAULT_SENSORS = ["exo2", "camera", "lidar"]
+    DEFAULT_CONFIG = {
+        "exo2": {"server_ip": "192.168.0.68", "server_port": 5000},
+        "camera": {"server_ip": "192.168.0.20", "server_port": 5001},
+        "lidar": {"server_ip": "192.168.0.20", "server_port": 5002},
+    }
+    SENSOR_CLIENTS = {
+        "exo2": clients.Exo2Client,
+        "camera": clients.CameraClient,
+        "lidar": clients.LidarClient,
+    }
 
     def __init__(
         self,
@@ -65,55 +77,50 @@ class Surveyor:
         self.host = host
         self.port = port
 
-        if sensors_to_use is None:
-            sensors_to_use = ["exo2", "camera", "lidar"]
+        self._sensors_to_use = [valid_sensor for valid_sensor in sensors_to_use if valid_sensor in self.DEFAULT_SENSORS]
+        self._sensors_config = self._build_sensor_config(sensors_config or {})
+        self.sensors = self._init_sensors()
 
-        if sensors_config is None:
-            sensors_config = {}
-
-        self._sensors_config = {
-            "exo2": {
-                "exo2_server_ip": "192.168.0.68",
-                "exo2_server_port": 5000,
-            },
-            "camera": {
-                "camera_server_ip": "192.168.0.20",
-                "camera_server_port": 5001,
-            },
-            "lidar": {
-                "lidar_server_ip": "192.168.0.20",
-                "lidar_server_port": 5002,
-            },
-        }
-
-        self._sensors_to_use = sensors_to_use
-        # self._sensors_config = sensors_config
-        self._state = {}
-
-        # Apply default configurations if not provided
-        for sensor in self._sensors_to_use:
-            if sensors_config.get(sensor):
-                self._sensors_config[sensor].update(sensors_config[sensor])
-
-        self.sensors = {}
-        # Initialize sensors based on self._sensors_to_use
-        sensor_clients = {
-            "exo2": clients.Exo2Client,
-            "camera": clients.CameraClient,
-            "lidar": clients.LidarClient,
-        }
-        for sensor in self._sensors_to_use:
-            if sensor in sensor_clients:
-                self.sensors[sensor] = sensor_clients[sensor](
-                    self._sensors_config[sensor][f"{sensor}_server_ip"],
-                    self._sensors_config[sensor][f"{sensor}_server_port"],
-                )
 
         self._parallel_update = True
         self.record = record
-        self.record_rate = int(record_rate)
+        self.record_rate = record_rate
         hlp.HELPER_LOGGER.setLevel(level=logger_level)
         self._logger = hlp.HELPER_LOGGER
+
+    def _build_sensor_config(self, user_config: dict) -> dict:
+        """
+        Build a sensor configuration dictionary by merging default settings with user overrides.
+
+        Args:
+            user_config (dict): Dictionary containing user-specified sensor configuration overrides.
+
+        Returns:
+            dict: Final sensor configuration with user overrides applied to defaults.
+        """
+        config = {}
+        for sensor in self._sensors_to_use:
+            default = self.DEFAULT_CONFIG[sensor].copy()
+            override = user_config.get(sensor, {})
+            default.update(override)
+            config[sensor] = default
+        return config
+
+    def _init_sensors(self) -> dict:
+        """
+        Initialize sensor client instances based on the configured sensors.
+
+        Returns:
+            dict: A dictionary mapping sensor names to their initialized client instances.
+        """
+        sensors = {}
+        for sensor in self._sensors_to_use:
+            if sensor in list(self.SENSOR_CLIENTS.keys()):
+                client_cls = self.SENSOR_CLIENTS[sensor]
+                ip = self._sensors_config[sensor]["server_ip"]
+                port = self._sensors_config[sensor]["server_port"]
+                sensors[sensor] = client_cls(ip, port)
+        return sensors
 
     def __enter__(self):
         """
@@ -127,7 +134,7 @@ class Surveyor:
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.socket.settimeout(5)  # Set a timeout for the connection
+            self.socket.settimeout(5)  # Set a timeout for the connection                print(f"Initializing sensor: {sensor}")
             self.socket.connect((self.host, self.port))
             self._logger.info("Surveyor connected!")
 

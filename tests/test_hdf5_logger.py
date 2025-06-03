@@ -5,7 +5,8 @@ import h5py
 import numpy as np
 from MockSurveyor import MockSurveyor
 
-from surveyor_lib.helpers import HDF5Logger  # replace with actual import
+from surveyor_lib.helpers import HDF5Logger 
+
 
 mock_surveyor = MockSurveyor()
 
@@ -62,5 +63,4 @@ def test_continuous_logging_and_close(tmp_path):
         result = np.asarray(ds[0], dtype=expected_data.dtype)
         print(f"Fields: {ds.dtype.names} {expected_data.dtype} {result.dtype}")
         assert ds.shape[0] >= 2  # Should have logged at least twice
-        # print(ds[0], expected_data)
         assert expected_data.dtype == result.dtype
