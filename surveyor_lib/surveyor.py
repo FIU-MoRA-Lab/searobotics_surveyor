@@ -81,7 +81,7 @@ class Surveyor:
         self._sensors_config = self._build_sensor_config(sensors_config or {})
         self.sensors = self._init_sensors()
 
-
+        self._state = {}
         self._parallel_update = True
         self.record = record
         self.record_rate = record_rate
