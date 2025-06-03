@@ -308,7 +308,7 @@ def get_date():
     date_str = now.strftime("%Y%m%d")  # Format date as YYYY-MM-DD
     time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
     return {
-        "Day": int(date_str),
+        "Date": int(date_str),
         "Time": int(time_str),
     }
 

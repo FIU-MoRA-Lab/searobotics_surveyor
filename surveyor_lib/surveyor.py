@@ -328,14 +328,14 @@ class Surveyor:
             mode (str): The control mode to set.
             **args: Additional arguments required for specific modes.
         """
-        if mode not in VALID_CONTROL_MODES:
+        if mode not in self.VALID_CONTROL_MODES:
             self._logger.error(f"Invalid control mode: '{mode}'")
             raise ValueError(
                 f"Invalid control mode: '{mode}'. "
-                f"Valid modes are: {list(VALID_CONTROL_MODES.keys())}"
+                f"Valid modes are: {list(self.VALID_CONTROL_MODES.keys())}"
             )
 
-        required_args = VALID_CONTROL_MODES[mode]
+        required_args = self.VALID_CONTROL_MODES[mode]
         missing_args = [arg for arg in required_args if arg not in args]
         if missing_args:
             self._logger.error(
