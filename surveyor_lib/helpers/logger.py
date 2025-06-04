@@ -42,7 +42,7 @@ def create_logger(name, log_level=logging.DEBUG, log_file=None):
 
 HELPER_LOGGER = create_logger(
     name="Helper Logger",
-    log_level=logging.DEBUG,
+    log_level=logging.INFO,
     log_file="",
 )
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Create a logger instance
     my_logger = create_logger(
         "MyLogger",
-        log_level=logging.INFO,
+        log_level=logging.DEBUG,
         log_file="logs.log",
     )
 
