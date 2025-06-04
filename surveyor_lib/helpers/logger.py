@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Create a logger instance
     my_logger = create_logger(
         "MyLogger",
-        log_level=logging.DEBUG,
+        log_level=logging.INFO,
         log_file="logs.log",
     )
 
