@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-import requests_mock
+
 from surveyor_lib.clients.exo2_client import Exo2Client
 
 

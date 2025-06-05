@@ -77,4 +77,4 @@ def test_process_surveyor_message_dispatch():
 
 def test_process_surveyor_message_empty():
     result = process_surveyor_message("")
-    assert "Day" in result and "Time" in result
+    assert "Date" in result and "Time" in result

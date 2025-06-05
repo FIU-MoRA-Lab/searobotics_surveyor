@@ -4,12 +4,13 @@ import re
 
 import serial
 from flask import Flask, jsonify, request
+from port_selector import get_serial_port
 
 app = Flask(__name__)
 
 # Global variables for serial connection
-serial_connection = None
-COM_PORT = "COM4" if platform.system() == "Windows" else "/dev/ttyUSB1"
+SERIAL_CONNECTION = None
+SERIAL_PORT = "COM4" if platform.system() == "Windows" else "/dev/ttyUSB0"
 BAUD_RATE = 9600
 TIMEOUT = 0.1
 
@@ -18,10 +19,10 @@ def initialize_serial():
     """
     Initialize the serial connection with the given parameters.
     """
-    global serial_connection
+    global SERIAL_CONNECTION
     print("Initializing serial connection...")
-    serial_connection = serial.Serial(
-        COM_PORT,
+    SERIAL_CONNECTION = serial.Serial(
+        SERIAL_PORT,
         BAUD_RATE,
         timeout=TIMEOUT,
         bytesize=serial.EIGHTBITS,
@@ -43,14 +44,14 @@ def send_and_receive_serial_command(command):
         bytes: The response from the serial device.
     """
     try:
-        serial_connection.write(command)
-        data = serial_connection.readline().strip()  # Read the command echo
+        SERIAL_CONNECTION.write(command)
+        data = SERIAL_CONNECTION.readline().strip()  # Read the command echo
         if (
             not data
             or data.startswith(b"#")
             or bool(re.search(r"[a-zA-Z]", data.decode("utf-8")))
         ):
-            data = serial_connection.readline().strip()  # Read the actual data
+            data = SERIAL_CONNECTION.readline().strip()  # Read the actual data
         return data
     except serial.SerialException as e:
         print(f"Serial communication error: {e}")
@@ -68,7 +69,7 @@ def handle_data():
     Returns:
         Response: JSON response containing the data or error message.
     """
-    if not serial_connection.is_open:
+    if not SERIAL_CONNECTION.is_open:
         initialize_serial()
 
     if request.method == "GET":
@@ -81,7 +82,7 @@ def handle_data():
         command = request.data + b"\r"
         if command == b"init\r":
             # Special case for the "init" command
-            if serial_connection.is_open:
+            if SERIAL_CONNECTION.is_open:
                 return jsonify({"message": "Connection Initialized"})
             else:
                 return jsonify({"error": "Error opening socket"}), 500
@@ -99,7 +100,7 @@ def health_check():
     Returns:
         Response: JSON response indicating the health status.
     """
-    return jsonify({"status": "ok", "serial_open": serial_connection.is_open})
+    return jsonify({"status": "ok", "serial_open": SERIAL_CONNECTION.is_open})
 
 
 def main():
@@ -111,12 +112,12 @@ def main():
         app.run(host="0.0.0.0", port=5000, debug=False)
     except KeyboardInterrupt:
         print("\nShutting down server.")
-        if serial_connection and serial_connection.is_open:
-            serial_connection.close()
+        if SERIAL_CONNECTION and SERIAL_CONNECTION.is_open:
+            SERIAL_CONNECTION.close()
     except Exception as e:
         print(f"Error: {e}")
-        if serial_connection and serial_connection.is_open:
-            serial_connection.close()
+        if SERIAL_CONNECTION and SERIAL_CONNECTION.is_open:
+            SERIAL_CONNECTION.close()
 
 
 if __name__ == "__main__":
@@ -131,10 +132,10 @@ if __name__ == "__main__":
         help="Port number (default: 5000).",
     )
     parser.add_argument(
-        "--com_port",
+        "--serial_port",
         type=str,
-        default=("COM4" if platform.system() == "Windows" else "/dev/ttyUSB1"),
-        help="COM port (default: COM4 for Windows, /dev/ttyUSB1 for Linux).",
+        default=("COM4" if platform.system() == "Windows" else "/dev/ttyUSB0"),
+        help="COM port (default: COM4 for Windows, /dev/ttyUSB0 for Linux).",
     )
     parser.add_argument(
         "--baud_rate",
@@ -148,12 +149,26 @@ if __name__ == "__main__":
         default=0.1,
         help="Timeout in seconds (default: 0.1).",
     )
+    parser.add_argument(
+        "--find_serial_port",
+        action="store_true",
+        help="Run the server in debug mode.",
+    )
 
     # Parse the command line arguments
     args = vars(parser.parse_args())
 
     # Update global variables
-    COM_PORT = args["com_port"]
+    if args["find_serial_port"] and platform.system() != "Windows":
+        found_port = get_serial_port("FTDI")
+        if found_port:
+            args["serial_port"] = found_port
+        else:
+            print(
+                "Error: No serial port found. Using the provided serial port.."
+            )
+
+    SERIAL_PORT = args["serial_port"]
     BAUD_RATE = args["baud_rate"]
     TIMEOUT = args["timeout"]
 

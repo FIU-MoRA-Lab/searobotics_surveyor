@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from flask import Flask, Response, jsonify
+from port_selector import get_serial_port  # Import the port selector function
 from rplidar import LidarWrapper
 
 # Global variables
@@ -97,9 +98,8 @@ app = Flask(__name__)
 
 
 def generate_mjpeg_stream():
-    # global SAFE_TRESHOLD, ANGLES, SCATTER, FIG, N
     """
-    Generates an MJPEG stream of the Lidar data
+    Generates an MJPEG stream of the Lidar data.
 
     Yields:
     frames in JPEG format for streaming.
@@ -195,8 +195,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--host",
         type=str,
-        default="192.168.0.20",
-        help="Host IP (default: 192.168.0.20).",
+        default="0.0.0.0",
+        help="Host IP (default: localhost or 192.168.0.20).",
     )
     parser.add_argument(
         "--port",
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         help="Port number (default: 5002).",
     )
     parser.add_argument(
-        "--lidar_port",
+        "--serial_port",
         type=str,
         default="/dev/ttyUSB0",
         help="Lidar serial port (default: /dev/ttyUSB0).",
@@ -225,11 +225,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lim",
         type=float,
-        default=3.0,
-        help="Plot boundary (default: 3.0 meters).",
+        default=7.0,
+        help="Plot boundary (default: 7.0 meters).",
     )
     parser.add_argument(
-        "--op_angle",
+        "--fov_angle",
         type=float,
         default=120,
         help="Opening angle (default: 120 degrees).",
@@ -237,19 +237,35 @@ if __name__ == "__main__":
     parser.add_argument(
         "--safety_dist",
         type=float,
-        default=2.0,
-        help="Opening angle (default: 2.0 meters).",
+        default=3.0,
+        help="Safety distance threshold (default: 3.0 meters).",
+    )
+    parser.add_argument(
+        "--find_serial_port",
+        action="store_true",
+        help="Automatically find the serial port (non-Windows only).",
     )
 
     # Parse arguments and start the server
     args = vars(parser.parse_args())
+
+    # Automatically find the serial port if requested
+    if args["find_serial_port"]:
+        serial_port = get_serial_port("CP210x")
+        if serial_port:
+            args["serial_port"] = serial_port
+        else:
+            print(
+                "Error: No serial port found. Using the provided serial port."
+            )
+
     SAFE_TRESHOLD = args["safety_dist"]
     main(
         args["host"],
         args["port"],
-        args["lidar_port"],
+        args["serial_port"],
         args["baudrate"],
         args["n"],
         args["lim"],
-        args["op_angle"],
+        args["fov_angle"],
     )

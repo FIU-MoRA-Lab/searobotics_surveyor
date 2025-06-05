@@ -42,10 +42,12 @@ Sends a command to the Exo2 sensor and retrieves the response.
 
 The server can be configured using command-line arguments:
 
+- `--host`: Host IP address for the server (default: `0.0.0.0`).
 - `--port`: Port number for the server (default: `5000`).
 - `--com_port`: Serial port for the Exo2 sensor (default: `COM4` for Windows, `/dev/ttyUSB1` for Linux).
 - `--baud_rate`: Baud rate for the serial connection (default: `9600`).
 - `--timeout`: Timeout for the serial connection in seconds (default: `0.1`).
+- `--find_serial_port`: Automatically find the serial port (non-Windows only).
 
 ---
 
@@ -75,11 +77,12 @@ Provides an MJPEG video stream from the camera.
 
 The server can be configured using command-line arguments:
 
-- `--host`: Host IP address for the server (default: `192.168.0.20`).
+- `--host`: Host IP address for the server (default: `0.0.0.0`).
 - `--port`: Port number for the server (default: `5001`).
 - `--camera_source_type`: Camera source type (`picamera` or `usb`, default: `picamera`).
 - `--image_width`: Width of the video frames (default: `800`).
 - `--image_height`: Height of the video frames (default: `600`).
+
 
 ---
 
@@ -116,7 +119,7 @@ Fetches raw Lidar data as JSON.
 
 The server can be configured using command-line arguments:
 
-- `--host`: Host IP address for the server (default: `192.168.0.20`).
+- `--host`: Host IP address for the server (default: `0.0.0.0`).
 - `--port`: Port number for the server (default: `5002`).
 - `--lidar_port`: Serial port for the Lidar device (default: `/dev/ttyUSB0`).
 - `--baudrate`: Baud rate for the Lidar communication (default: `1000000`).
@@ -124,6 +127,8 @@ The server can be configured using command-line arguments:
 - `--lim`: Maximum range for the Lidar plot in meters (default: `3.0`).
 - `--op_angle`: Opening angle for the Lidar plot in degrees (default: `120`).
 - `--safety_dist`: Safety threshold distance in meters (default: `2.0`).
+- `--find_serial_port`: Automatically find the serial port (non-Windows only).
+
 
 ---
 
@@ -270,6 +275,6 @@ By following these steps, you can create a new Flask-based server for any sensor
 
 ## Notes
 
-- All servers are designed to be self-contained and can be started independently.
+- All servers are designed to be self-contained and can be started independently with the help of the module `port_selector.py`.
 - Ensure that the respective hardware (e.g., Exo2 sensor, camera, Lidar) is properly connected and configured before starting the servers.
 - Use the provided endpoints to interact with the servers and retrieve data or streams.

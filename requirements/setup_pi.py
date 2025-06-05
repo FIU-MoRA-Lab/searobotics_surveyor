@@ -18,11 +18,12 @@ virtualenv_path = (
 )
 bashrc_script = f"{home_dir}/.bashrc"  # The .bashrc file
 
-servers_url_path = f'{base_git_repo_url}/surveyor_lib/servers'
+servers_url_path = f"{base_git_repo_url}/surveyor_lib/servers"
 python_scripts_urls = [
     f"{servers_url_path}/camera_server.py",
     f"{servers_url_path}/lidar_server.py",
     f"{servers_url_path}/exo2_server.py",
+    f"{servers_url_path}/port_selector.py",
 ]
 # Add more script URLs here as needed
 python_scripts = [
@@ -113,14 +114,14 @@ def update_bashrc():
 
 # Step 5: Download the Python scripts from the repository
 def download_python_scripts():
-    print("Downloading Python scripts...")
+    servers_dir = os.path.join(current_directory, "servers")
+    os.makedirs(servers_dir, exist_ok=True)
+    print("Downloading Python scripts into 'servers' directory...")
     for script_url in python_scripts_urls:
         script_name = script_url.split("/")[-1]
-        print(f"Downloading {script_name}...")
-        urllib.request.urlretrieve(
-            script_url,
-            f"{current_directory}/{script_name}",
-        )
+        dest_path = os.path.join(servers_dir, script_name)
+        print(f"Downloading {script_name} to {dest_path}...")
+        urllib.request.urlretrieve(script_url, dest_path)
 
 
 # Step 6: Install dependencies (cmake, pybind11)
@@ -169,7 +170,7 @@ def compile_lidar_package():
         )
         subprocess.run("rm -rf build", shell=True, check=True)
         print(
-            "Important!!!!!!!!!!!!!!\nCopy the generated .so file from the folder 'rplidar_python' into the desktop."
+            "Important!!!!!!!!!!!!!!\nCopy the generated .so file from the folder 'rplidar_python' into the 'servers' folder."
         )
     except Exception as e:
         print(f"Error occurred while compiling lidar library: {e}")

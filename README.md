@@ -57,10 +57,10 @@ Files intended to test specific capabilities; they have no use in the library it
 ### 2. DAC Setup
 
 1. Connect via Remote Desktop to `192.168.0.68`.
-2. Copy `exo2_server.py` and `requirements_exo2_dac.txt` to the desktop.
+2. Copy `exo2_server.py` and `requirements_dac.txt` to the desktop.
 3. Install dependencies:
 ```bash
-    pip3 install -r requirements_exo2_dac.txt
+    pip3 install -r requirements_dac.txt
 ```
 
 ## 3. Raspberry Pi set-up

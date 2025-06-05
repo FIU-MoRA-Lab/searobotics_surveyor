@@ -5,8 +5,7 @@ import h5py
 import numpy as np
 from MockSurveyor import MockSurveyor
 
-from surveyor_lib.helpers import HDF5Logger 
-
+from surveyor_lib.helpers import HDF5Logger
 
 mock_surveyor = MockSurveyor()
 

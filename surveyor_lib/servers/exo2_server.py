@@ -6,16 +6,18 @@ import socketserver
 import sys
 
 import serial
+from port_selector import get_serial_port  # Import the port selector function
 
 OS_TYPE = platform.system()
 
 
 class Exo2Server(http.server.SimpleHTTPRequestHandler):
-    com_port = "COM4"  # Default values
+    serial_port = "COM4"  # Default values
     baud_rate = 9600
     port = 5000
     timeout = 0.1
     serial_connection = None
+    host = " "
 
     @classmethod
     def initialize_serial(cls):
@@ -24,7 +26,7 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
         """
         print("Initializing serial connection")
         cls.serial_connection = serial.Serial(
-            cls.com_port,
+            cls.serial_port,
             cls.baud_rate,
             timeout=cls.timeout,
             bytesize=serial.EIGHTBITS,
@@ -105,7 +107,7 @@ class Exo2Server(http.server.SimpleHTTPRequestHandler):
                 if self.serial_connection.is_open:
                     data = b"Connection Initialized"
                 else:
-                    data = b"Error openning socket"
+                    data = b"Error opening socket"
             else:  # Handles any other command (exo2 commands)
                 data = self.send_and_receive_serial_command(command_received)
 
@@ -121,10 +123,10 @@ def main():
     try:
         Exo2Server.initialize_serial()
         with socketserver.TCPServer(
-            ("", Exo2Server.port), Exo2Server
+            ("0.0.0.0", Exo2Server.port), Exo2Server
         ) as server:
             print(
-                f"Serving at port {Exo2Server.port}, reading from {Exo2Server.com_port} at {Exo2Server.baud_rate} baud with a timeout of {Exo2Server.timeout} seconds."
+                f"Serving at port {Exo2Server.port}, reading from {Exo2Server.serial_port} at {Exo2Server.baud_rate} baud with a timeout of {Exo2Server.timeout} seconds."
             )
             server.serve_forever()
     except KeyboardInterrupt:
@@ -147,16 +149,22 @@ if __name__ == "__main__":
         description="Server script for serial communication."
     )
     parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host IP (default: localhost or 192.168.0.20).",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=5000,
         help="Port number (default: 5000).",
     )
     parser.add_argument(
-        "--com_port",
+        "--serial_port",
         type=str,
-        default=("COM4" if OS_TYPE == "Windows" else "/dev/ttyUSB1"),
-        help="COM port (default: COM4 for Windows ttyUSB1 for linux).",
+        default=("COM4" if OS_TYPE == "Windows" else "/dev/ttyUSB0"),
+        help="COM port (default: COM4 for Windows, /dev/ttyUSB0 for Linux).",
     )
     parser.add_argument(
         "--baud_rate",
@@ -170,12 +178,28 @@ if __name__ == "__main__":
         default=0.1,
         help="Timeout in seconds (default: 0.1).",
     )
+    parser.add_argument(
+        "--find_serial_port",
+        action="store_true",
+        help="Automatically find the serial port (non-Windows only).",
+    )
 
     # Parse the command line arguments
     args = vars(parser.parse_args())
 
+    # Automatically find the serial port if requested
+    if args["find_serial_port"] and OS_TYPE != "Windows":
+        serial_port = get_serial_port("FTDI")
+        if serial_port:
+            args["serial_port"] = serial_port
+        else:
+            print(
+                "Error: No serial port found. Using the provided serial port."
+            )
+
+    Exo2Server.host = args["host"]
     Exo2Server.port = int(args["port"])
-    Exo2Server.com_port = args["com_port"]
+    Exo2Server.serial_port = args["serial_port"]
     Exo2Server.baud_rate = int(args["baud_rate"])
     Exo2Server.timeout = float(args["timeout"])
 

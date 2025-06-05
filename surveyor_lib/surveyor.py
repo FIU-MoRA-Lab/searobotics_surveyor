@@ -77,7 +77,11 @@ class Surveyor:
         self.host = host
         self.port = port
 
-        self._sensors_to_use = [valid_sensor for valid_sensor in sensors_to_use if valid_sensor in self.DEFAULT_SENSORS]
+        self._sensors_to_use = [
+            valid_sensor
+            for valid_sensor in sensors_to_use
+            if valid_sensor in self.DEFAULT_SENSORS
+        ]
         self._sensors_config = self._build_sensor_config(sensors_config or {})
         self.sensors = self._init_sensors()
 
@@ -134,7 +138,9 @@ class Surveyor:
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.socket.settimeout(5)  # Set a timeout for the connection                print(f"Initializing sensor: {sensor}")
+            self.socket.settimeout(
+                5
+            )  # Set a timeout for the connection                print(f"Initializing sensor: {sensor}")
             self.socket.connect((self.host, self.port))
             self._logger.info("Surveyor connected!")
 
@@ -549,7 +555,9 @@ class Surveyor:
                 data = [data]
             if key in data_labels and not isinstance(data, dict):
                 if len(data_labels[key]) != len(data):
-                    self._logger.error(f"Mismatch in lengths for key '{key}': {len(data_labels[key])} labels vs {len(data)} data.")
+                    self._logger.error(
+                        f"Mismatch in lengths for key '{key}': {len(data_labels[key])} labels vs {len(data)} data."
+                    )
                     continue
                 data = dict(zip(data_labels[key], data))
             if isinstance(data, dict):
