@@ -6,7 +6,7 @@ attached_line = "now attached to"
 def get_dmesg_ttyusb_lines():
     # Execute the command and capture output
     result = subprocess.run(
-        ["dmesg | grep ttyUSB"], capture_output=True, text=True, check=True
+    "dmesg | grep ttyUSB", capture_output=True, text=True, check=True, shell=True
     )
     # Filter lines containing 'ttyUSB'
     lines = [line for line in result.stdout.splitlines()]
@@ -46,5 +46,5 @@ if __name__ == "__main__":
     for line in get_dmesg_ttyusb_lines():
         print(line)
     print(
-        get_serial_port("CP210x")
+        get_serial_port("cp210x")
     )  # Example usage, searching for FTDI devices

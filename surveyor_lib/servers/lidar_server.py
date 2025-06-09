@@ -251,7 +251,8 @@ if __name__ == "__main__":
 
     # Automatically find the serial port if requested
     if args["find_serial_port"]:
-        serial_port = get_serial_port("CP210x")
+        serial_port = get_serial_port("cp210x")
+        print(serial_port)
         if serial_port:
             args["serial_port"] = serial_port
         else:
