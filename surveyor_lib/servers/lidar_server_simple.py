@@ -18,7 +18,7 @@ SCATTER = None
 ANGLES = None
 N = None
 SAFE_TRESHOLD = None
-
+LIDAR = None
 
 def initialize_and_start(lidar_port, baudrate, n, lim, op_angle):
     """
@@ -31,17 +31,17 @@ def initialize_and_start(lidar_port, baudrate, n, lim, op_angle):
     lim (float): Limit for the lidar range.
     op_angle (float): Opening angle to draw.
     """
-    global FIG, SCATTER, ANGLES, N
+    global FIG, SCATTER, ANGLES, N, LIDAR
 
     # Initialize the Lidar
-    lidar = LidarWrapper(lidar_port, str(baudrate))
-    lidar.start()  # Start the Lidar data collection
+    LIDAR = LidarWrapper(lidar_port, str(baudrate))
+    LIDAR.start()  # Start the Lidar data collection
 
     def _data_getter():
         """Thread function to continuously collect Lidar data."""
         global LIDAR_MEASUREMENTS
         while True:
-            LIDAR_MEASUREMENTS = lidar.get_scan_data()
+            LIDAR_MEASUREMENTS = LIDAR.get_scan_data()
             time.sleep(0.05)
 
     # Start data collection in a separate thread
@@ -181,12 +181,15 @@ def main(
     op_angle (float): Opening angle to draw.
     """
     initialize_and_start(lidar_port, baudrate, n, lim, op_angle)
-    app.run(
-        threaded=True,
-        debug=False,
-        port=port,
-        host=host,
-    )
+    try:
+        app.run(
+            threaded=True,
+            debug=False,
+            port=port,
+            host=host,
+        )
+    except Exception as e:
+        print(f"Server stopped due to an error: {e}")
 
 
 if __name__ == "__main__":

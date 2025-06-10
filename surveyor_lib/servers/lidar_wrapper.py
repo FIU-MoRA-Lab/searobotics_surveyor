@@ -3,7 +3,7 @@ import re
 import subprocess
 import threading
 from pathlib import Path
-
+import signal
 
 class LidarWrapper:
     def __init__(self, serial_port="/dev/ttyUSB0", baudrate="1000000"):
@@ -51,10 +51,19 @@ class LidarWrapper:
     def stop(self):
         print("Stopping LidarWrapper...")
         self._running = False
-        if self._proc and self._proc.poll() is None:
-            self._proc.terminate()
+        if self._proc and self._proc.poll() is None:  # still running
+            self._proc.send_signal(signal.SIGINT)
+            try:
+                print("Terminating process...")
+                self._proc.terminate()  # send SIGTERM
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print("Process did not terminate in time, killing...")
+                self._proc.kill()  # force kill if not exiting
+                self._proc.wait()
         if self._thread:
             self._thread.join(timeout=1)
+        print("LidarWrapper Stopped...")
 
     def get_scan_data(self):
         return self.vector.copy()
