@@ -3,13 +3,14 @@ import io
 import threading
 import time
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from flask import Flask, Response, jsonify
-from port_selector import get_serial_port  # Import the port selector function
 from lidar_wrapper import LidarWrapper
-import matplotlib
-matplotlib.use('Agg')  # Use non-GUI backend
+from port_selector import get_serial_port  # Import the port selector function
+
+matplotlib.use("Agg")  # Use non-GUI backend
 # Global variables
 LIDAR_MEASUREMENTS = []
 FIG = None
@@ -35,12 +36,13 @@ def initialize_and_start(lidar_port, baudrate, n, lim, op_angle):
     # Initialize the Lidar
     lidar = LidarWrapper(lidar_port, str(baudrate))
     lidar.start()  # Start the Lidar data collection
+
     def _data_getter():
         """Thread function to continuously collect Lidar data."""
         global LIDAR_MEASUREMENTS
         while True:
-                LIDAR_MEASUREMENTS = lidar.get_scan_data()
-                time.sleep(0.05)
+            LIDAR_MEASUREMENTS = lidar.get_scan_data()
+            time.sleep(0.05)
 
     # Start data collection in a separate thread
     get_thread = threading.Thread(target=_data_getter)
