@@ -6,7 +6,7 @@ attached_line = "now attached to"
 def get_dmesg_ttyusb_lines():
     # Execute the command and capture output
     result = subprocess.run(
-        "sudo dmesg | grep ttyUSB",
+        "dmesg | grep ttyUSB",
         capture_output=True,
         text=True,
         check=True,
