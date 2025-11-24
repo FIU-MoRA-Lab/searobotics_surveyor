@@ -1,9 +1,11 @@
+from typing import Callable, Iterable, List, Tuple
+
 import pandas as pd
 
 from .logger import HELPER_LOGGER
 
 
-def compute_nmea_checksum(message):
+def compute_nmea_checksum(message: str) -> str:
     """
     Compute the checksum for an NMEA message.
 
@@ -19,9 +21,7 @@ def compute_nmea_checksum(message):
     return "{:02X}".format(checksum)
 
 
-def convert_lat_to_nmea_degrees_minutes(
-    decimal_degree,
-):
+def convert_lat_to_nmea_degrees_minutes(decimal_degree: float) -> str:
     """
     Convert a decimal degree latitude value to NMEA format (degrees and minutes).
 
@@ -36,9 +36,7 @@ def convert_lat_to_nmea_degrees_minutes(
     return "{:02d}{:.4f}".format(degrees, minutes_decimal)
 
 
-def convert_lon_to_nmea_degrees_minutes(
-    decimal_degree,
-):
+def convert_lon_to_nmea_degrees_minutes(decimal_degree: float) -> str:
     """
     Convert a decimal degree longitude value to NMEA format (degrees and minutes).
 
@@ -53,7 +51,7 @@ def convert_lon_to_nmea_degrees_minutes(
     return "{:03d}{:.4f}".format(degrees, minutes_decimal)
 
 
-def get_hemisphere_lat(value):
+def get_hemisphere_lat(value: float) -> str:
     """
     Get the hemisphere ('N' or 'S') for a given latitude value.
 
@@ -66,7 +64,7 @@ def get_hemisphere_lat(value):
     return "N" if value >= 0 else "S"
 
 
-def get_hemisphere_lon(value):
+def get_hemisphere_lon(value: float) -> str:
     """
     Get the hemisphere ('E' or 'W') for a given longitude value.
 
@@ -79,7 +77,10 @@ def get_hemisphere_lon(value):
     return "E" if value >= 0 else "W"
 
 
-def create_nmea_message(message, checksum_func=compute_nmea_checksum):
+def create_nmea_message(
+    message: str,
+    checksum_func: Callable[[str], str] = compute_nmea_checksum,
+) -> str:
     """
     Create a full NMEA message with checksum.
 
@@ -127,8 +128,8 @@ def create_waypoint_messages_df(filename, erp_filename):
         filename: the name of the CSV file containing waypoint data
         erp_filename: the name of the CSV file containing emergency recovery point
 
-    Rreturns:
-        Pandas DataFrame: a DataFrame containing NMEA waypoint messages
+    Returns:
+        pandas.DataFrame: a DataFrame containing NMEA waypoint messages
     """
     try:
         # Load the CSV into a pandas DataFrame
@@ -191,19 +192,27 @@ def create_waypoint_messages_df_from_list(waypoints, erp):
     Create a DataFrame with waypoint messages from lists of coordinates.
 
     Args:
-        waypoints: a list of tuples with (latitude, longitude)
-        erp: a tuple with (latitude, longitude) for the emergency recovery point
+        waypoints: a list of (latitude, longitude) tuples
+        erp: a single (latitude, longitude) tuple
     Returns:
-        Pandas DataFrame: a pandas DataFrame containing NMEA waypoint messages
+        pandas.DataFrame: a pandas DataFrame containing NMEA waypoint messages
     """
-    # Convert the waypoints list and ERP to pandas DataFrames
-    waypoints_df = pd.DataFrame(
-        waypoints,
-        columns=["latitude", "longitude"],
-    )
-    erp_df = pd.DataFrame(erp, columns=["latitude", "longitude"])
+    if not waypoints:
+        HELPER_LOGGER.error("Waypoints list is empty.")
+        return pd.DataFrame()
 
-    # Validate that the DataFrames are not empty
+    # Ensure erp is a single tuple, wrap into list of one row
+    if not isinstance(erp, (list, tuple)) or len(erp) != 2:
+        HELPER_LOGGER.error("ERP must be a (latitude, longitude) tuple, got %r", erp)
+        return pd.DataFrame()
+
+    try:
+        waypoints_df = pd.DataFrame(waypoints, columns=["latitude", "longitude"])
+        erp_df = pd.DataFrame([erp], columns=["latitude", "longitude"])
+    except Exception as e:
+        HELPER_LOGGER.error("Error creating DataFrames from inputs: %s", e)
+        return pd.DataFrame()
+
     if waypoints_df.empty:
         HELPER_LOGGER.error("The waypoints DataFrame is empty.")
         return pd.DataFrame()
@@ -262,9 +271,7 @@ def create_waypoint_mission(df, throttle=20):
     """
     # Start with the PSEAR command
     psear_cmd = "PSEAR,0,000,{},0,000".format(throttle)
-    psear_cmd_with_checksum = (
-        f"{psear_cmd}*{compute_nmea_checksum(psear_cmd)}\r\n"
-    )
+    psear_cmd_with_checksum = f"{psear_cmd}*{compute_nmea_checksum(psear_cmd)}\r\n"
 
     # Generate OIWPL commands from the DataFrame
     oiwpl_cmds = df["nmea_message"].tolist()

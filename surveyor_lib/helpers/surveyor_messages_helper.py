@@ -11,6 +11,7 @@ thereby facilitating the efficient management of navigation and surveying tasks 
 
 import datetime
 import os
+from typing import Any, Callable, Dict, List, Tuple
 
 import pynmea2
 from geopy.distance import geodesic
@@ -22,54 +23,50 @@ from .waypoint_helper import (
     create_waypoint_mission,
 )
 
+Coord = Tuple[float, float]
 
-def are_coordinates_close(coord1, coord2, tolerance_meters=2):
+
+def are_coordinates_close(
+    coord1: Coord,
+    coord2: Coord,
+    tolerance_meters: float = 2.0,
+) -> bool:
     """
     Check if two coordinates are close enough based on a tolerance in meters.
 
     Parameters:
-        coord1: Tuple containing first set of coordinates (latitude, longitude).
-        coord2: Tuple containing second set of coordinates (latitude, longitude).
-        tolerance_meters: Maximum allowed distance in meters between the two coordinates.
+        coord1: (latitude, longitude).
+        coord2: (latitude, longitude).
+        tolerance_meters: Maximum allowed distance in meters.
 
     Returns:
-        Boolean indicating if the two coordinates are close enough.
+        True if coords are within tolerance_meters, else False.
     """
     distance = geodesic(coord1, coord2).meters
     return distance <= tolerance_meters
 
 
-def get_message_by_prefix(message, prefix):
-    """Find the message in the split list that starts with the given prefix."""
-    messages = message.split("\r\n")
-    for msg in messages:
-        if msg.startswith(prefix):
+def get_message_by_prefix(message: str, prefix: str) -> str | None:
+    """Find the first line in message that starts with the given prefix."""
+    for msg in message.split("\r\n"):
+        if msg and msg.startswith(prefix):
             return msg
     return None
 
 
-def get_gga(message):
-    """Extract the GPGGA message."""
-    gga = get_message_by_prefix(message, "$GPGGA")
-    if gga:
-        return gga
-    return None
+def get_gga(message: str) -> str | None:
+    """Extract the GPGGA message line, if present."""
+    return get_message_by_prefix(message, "$GPGGA")
 
 
-def get_attitude_message(message):
-    """Extract the PSEAA message."""
-    attitude = get_message_by_prefix(message, "$PSEAA")
-    if attitude:
-        return attitude
-    return None
+def get_attitude_message(message: str) -> str | None:
+    """Extract the PSEAA message line, if present."""
+    return get_message_by_prefix(message, "$PSEAA")
 
 
-def get_command_status_message(message):
-    """Extract the PSEAD message."""
-    control_mode_message = get_message_by_prefix(message, "$PSEAD")
-    if control_mode_message:
-        return control_mode_message
-    return None
+def get_command_status_message(message: str) -> str | None:
+    """Extract the PSEAD message line, if present."""
+    return get_message_by_prefix(message, "$PSEAD")
 
 
 def get_coordinates(gga_message):
@@ -80,7 +77,7 @@ def get_coordinates(gga_message):
         gga_message (str): The NMEA GGA message string.
 
     Returns:
-        tuple: A tuple containing the latitude and longitude as floats, or None if the message cannot be parsed.
+        dict: {"Latitude": float, "Longitude": float} if valid, else {}.
     """
     if not gga_message:
         HELPER_LOGGER.warning("Received an empty or None GGA message.")
@@ -128,57 +125,47 @@ def get_coordinates(gga_message):
     return {}
 
 
-def process_proprietary_message(proprietary_message, value_names, process_fun):
+def process_proprietary_message(
+    proprietary_message: str,
+    value_names: List[str],
+    process_fun: Callable[[str], Any],
+) -> Dict[str, Any]:
     """
-    Process the proprietary message and convert it into a dictionary with corresponding values.
+    Process a proprietary message and convert it into a dictionary.
 
     Args:
-        proprietary_message (str): The proprietary message to be parsed.
-        value_names (list): The list of value names to map to the message parts.
+        proprietary_message: The proprietary message to be parsed.
+        value_names: Names to map to each parsed value.
+        process_fun: Function applied to each raw string value.
 
     Returns:
-        dict: A dictionary mapping the value names to the corresponding parsed values.
+        dict: name -> processed value.
     """
     if not proprietary_message:
         HELPER_LOGGER.warning("Received empty or None proprietary message.")
         return {}
 
-    HELPER_LOGGER.debug(
-        "Receiving proprietary message: %s",
-        proprietary_message,
-    )
+    HELPER_LOGGER.debug("Receiving proprietary message: %s", proprietary_message)
 
-    # Split the message into parts and remove the first and last item (e.g. '$PESAA' and checksum)
     try:
-        message_parts = proprietary_message.split(",")[
-            1:
-        ]  # Remove the first part ('$PESAA')
-        last_element = message_parts.pop(-1).split("*")[
-            0
-        ]  # Remove the last part (checksum)
+        # Remove header and checksum
+        message_parts = proprietary_message.split(",")[1:]
+        last_element = message_parts.pop(-1).split("*")[0]
         message_parts.append(last_element)
     except Exception as e:
-        HELPER_LOGGER.error(
-            "Error processing proprietary message: %s",
-            e,
-        )
+        HELPER_LOGGER.error("Error processing proprietary message: %s", e)
         return {}
 
-    # Convert the message parts to floats, replacing empty values with 0.0
     try:
         message_parts = [process_fun(element) for element in message_parts]
-    except ValueError as e:
-        HELPER_LOGGER.error(
-            "Error converting message parts to floats: %s",
-            e,
-        )
+    except Exception as e:
+        HELPER_LOGGER.error("Error converting message parts with process_fun: %s", e)
         return {}
 
-    # Return the result as a dictionary, mapping names to values
-    return {name: value for name, value in zip(value_names, message_parts)}
+    return dict(zip(value_names, message_parts))
 
 
-def get_attitude(attitude_message):
+def get_attitude(attitude_message: str) -> Dict[str, float]:
     """
     Parses an attitude message string and returns a dictionary of corresponding attitude values.
 
@@ -231,7 +218,7 @@ get_attitude.value_names = [
 get_attitude.process_fun = lambda x: (float(x) if x else 0.0)
 
 
-def get_command_status(command_message):
+def get_command_status(command_message: str) -> Dict[str, Any]:
     """
     Parses a command status message and returns a dictionary of corresponding status values.
 
@@ -296,14 +283,15 @@ def _get_command_status_process_fun(x):
         return 0.0
     try:
         return float(x)
-    except:
+    except ValueError:
         return get_command_status.command_dictionary.get(x, "Unknown")
 
 
 get_command_status.process_fun = _get_command_status_process_fun
 
 
-def get_date():
+def get_date() -> Dict[str, int]:
+    """Return current date/time in integer YYYYMMDD / HHMMSS format."""
     now = datetime.datetime.now()  # Get the current date and time
     date_str = now.strftime("%Y%m%d")  # Format date as YYYY-MM-DD
     time_str = now.strftime("%H%M%S")  # Format time as HH:MM:SS
@@ -323,13 +311,14 @@ def process_surveyor_message(message):
         dict: A dictionary of attributes extracted from the message.
 
     """
-    messages = message.split("\r\n")
     attribute_dict = get_date()
 
-    for message_line in messages:
+    for message_line in message.split("\r\n"):
+        if not message_line:
+            continue
         prefix = message_line[:6]
-        HELPER_LOGGER.debug(f"Processing message with prefix: {prefix}")
-        fun = process_surveyor_message.prefix_map.get(prefix, lambda x: {})
+        HELPER_LOGGER.debug("Processing message with prefix: %s", prefix)
+        fun = process_surveyor_message.prefix_map.get(prefix, lambda _: {})
         attribute_dict.update(fun(message_line))
 
     HELPER_LOGGER.debug(f"Attributes updated: {attribute_dict}")
@@ -347,9 +336,7 @@ if __name__ == "__main__":
     # Define file names
     filename = "square_mission"
     erp_filename = "erp_FIUMMC_lake"
-    parent_dir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), os.pardir)
-    )
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     print(parent_dir)
     # Open CSV files and create NMEA messages
     df = create_waypoint_messages_df(
@@ -373,25 +360,17 @@ if __name__ == "__main__":
     gga_message = "$GPGGA,115739.00,4158.8441367,N,09147.4416929,W,4,13,0.9,255.747,M,-32.00,M,01,0000*6E\r\n"
     coordinates = get_coordinates(gga_message)
     if coordinates:
-        latitude, longitude = coordinates
-        print(f"Latitude: {latitude}")
-        print(f"Longitude: {longitude}")
+        print(f"Latitude: {coordinates['Latitude']}")
+        print(f"Longitude: {coordinates['Longitude']}")
     else:
         print("Invalid or incomplete GGA sentence")
 
-    messages = [
-        "$GPGGA,,,,,,0,,,,M,,M,,*66\r\n",
-        # More messages here...
-        "$DEBUG,,,,,,,,,,,,,,,,,*7D\r\n",
-    ]
-    message = "".join(messages)
+    ...
     gga_message = get_gga(message)
-
-    coordinates = get_coordinates(gga_message)
+    coordinates = get_coordinates(gga_message) if gga_message else {}
     if coordinates:
-        latitude, longitude = coordinates
-        print(f"Latitude: {latitude}")
-        print(f"Longitude: {longitude}")
+        print(f"Latitude: {coordinates['Latitude']}")
+        print(f"Longitude: {coordinates['Longitude']}")
     else:
         print("Invalid or incomplete GGA sentence")
 
